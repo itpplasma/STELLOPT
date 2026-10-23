@@ -1,0 +1,5 @@
+BENCHMARKS/BEAMS3D_TEST/wout_ORBITS_fullorbit.nc	Published upstream STELLOPT benchmark equilibrium, included verbatim from 8060f5e5b1bfe11b2f8809c8dfa90459ee72f9ba for existing native code regressions; not new campaign output.
+BENCHMARKS/BEAMS3D_TEST/wout_ORBITS_fullorbit_coll.nc	Published upstream STELLOPT benchmark equilibrium, included verbatim from 8060f5e5b1bfe11b2f8809c8dfa90459ee72f9ba for existing native code regressions; not new campaign output.
+BENCHMARKS/BEAMS3D_TEST/wout_ORBITS_fullorbit_rkh68.nc	Published upstream STELLOPT benchmark equilibrium, included verbatim from 8060f5e5b1bfe11b2f8809c8dfa90459ee72f9ba for existing native code regressions; not new campaign output.
+BENCHMARKS/FIELDLINES_TEST/wout_NCSX_plasma.nc	Published upstream STELLOPT benchmark equilibrium, included verbatim from 8060f5e5b1bfe11b2f8809c8dfa90459ee72f9ba for existing native code regressions; not new campaign output.
+BENCHMARKS/PLASMA_TEST/wout_w7x.nc	Published upstream STELLOPT benchmark equilibrium, included verbatim from 8060f5e5b1bfe11b2f8809c8dfa90459ee72f9ba for existing native code regressions; not new campaign output.

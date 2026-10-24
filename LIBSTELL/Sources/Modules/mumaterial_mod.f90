@@ -259,8 +259,17 @@
                                                         0.0d0, 0.0d0, 1.0d0], [3,3]) !! 3x3 identity matrix
 
       PRIVATE :: CROSS_PRODUCT
+#if !defined(MPI_OPT)
+      PRIVATE :: MPI_WTIME
+#endif
 
       CONTAINS
+#if !defined(MPI_OPT)
+      DOUBLE PRECISION FUNCTION MPI_WTIME()
+      ! Keep timing available when mpi_inc does not import MPI routines.
+      CALL second0(MPI_WTIME)
+      END FUNCTION MPI_WTIME
+#endif
 !------------------------------------------------------------------------------
 !     Subroutines
 !       Main flow

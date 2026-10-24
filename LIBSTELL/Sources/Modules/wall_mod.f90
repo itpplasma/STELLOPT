@@ -24,6 +24,7 @@
       TYPE block
          INTEGER :: nfaces  ! number of faces in block
          LOGICAL :: isshared  ! whether or not shared memory active
+         LOGICAL :: pooled = .FALSE.  ! face is a slice owned by the shared pool
          ! shared memory point to faces in block
          INTEGER :: win_face
          ! bounds of block in x/y/z
@@ -31,6 +32,14 @@
          ! non-shared memory pointer to faces in block
          INTEGER,          DIMENSION(:),   POINTER :: face => null()
       END TYPE block
+
+      ! Candidate slices share a bounded number of MPI windows. Each chunk owns
+      ! its storage, while blocks retain their original ordered face-ID views.
+      TYPE, PRIVATE :: candidate_chunk
+         INTEGER, POINTER :: values(:) => null()
+         INTEGER :: win, used = 0
+         TYPE(candidate_chunk), POINTER :: next => null()
+      END TYPE candidate_chunk
 
       TYPE wall_type
          ! number of blocks
@@ -86,6 +95,9 @@
 
       TYPE(wall_type), PRIVATE :: wall
       TYPE(block), PRIVATE:: b
+      TYPE(candidate_chunk), PRIVATE, POINTER :: candidate_head => null()
+      TYPE(candidate_chunk), PRIVATE, POINTER :: candidate_tail => null()
+      INTEGER, PRIVATE, PARAMETER :: candidate_chunk_size = 1048576
 
       INTEGER, PRIVATE                         :: nfaces_per_block = 50
 
@@ -128,13 +140,15 @@
       PRIVATE :: LINE_BOX_INTERSECTION
       PRIVATE :: mpialloc_1d_int,mpialloc_1d_dbl,mpialloc_2d_int,mpialloc_2d_dbl
       PRIVATE :: free_mpi_array1d_int, free_mpi_array1d_dbl, free_mpi_array2d_int, free_mpi_array2d_dbl
+      PRIVATE :: ALLOCATE_BLOCK_FACES, FREE_CANDIDATE_POOL
       CONTAINS
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!    Wall Constructor
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      SUBROUTINE INIT_BLOCK(this,xmin,xmax,ymin,ymax,zmin,zmax,nface_block,istat,comm,shar_comm)
+      SUBROUTINE INIT_BLOCK(this,xmin,xmax,ymin,ymax,zmin,zmax, &
+         nface_block,istat,comm,shar_comm,pooled_faces)
       !-----------------------------------------------------------------------
       ! init_block: Initializes a single block of the accelerated uniform grid
       !-----------------------------------------------------------------------
@@ -149,6 +163,7 @@
       ! param[in, out]: istat. Integer that shows error if != 0
       ! param[in, out]: comm. MPI communicator, handles communication between nodes
       ! param[in, out]: shar_comm. Shared MPI communicator, handles shared memory
+      ! param[in]: pooled_faces. Internal wall-owned candidate views, default false
       !-----------------------------------------------------------------------
 #if defined(MPI_OPT)
          USE mpi
@@ -158,9 +173,12 @@
          INTEGER, INTENT(in) :: nface_block
          INTEGER, INTENT(inout) :: istat
          INTEGER, INTENT(inout), OPTIONAL :: comm, shar_comm
-         LOGICAL :: lshar_comm
+         LOGICAL, INTENT(in), OPTIONAL :: pooled_faces
+         LOGICAL :: lshar_comm, use_pool
          INTEGER :: i
 
+         use_pool = .FALSE.
+         IF (PRESENT(pooled_faces)) use_pool = pooled_faces
          lshar_comm = .FALSE.
 #if defined(MPI_OPT)
          IF (PRESENT(comm)) THEN
@@ -196,7 +214,13 @@
 #if defined(MPI_OPT)
                CALL MPI_BARRIER(shar_comm,istat)
                IF (istat/=0) RETURN
-               CALL mpialloc_1d_int(this%face, nface_block, shar_rank, 0, shar_comm, this%win_face)
+               IF (use_pool) THEN
+                  CALL ALLOCATE_BLOCK_FACES(this, nface_block, shar_comm, istat)
+                  IF (istat/=0) RETURN
+               ELSE
+                  CALL mpialloc_1d_int(this%face, nface_block, shar_rank, &
+                     0, shar_comm, this%win_face)
+               END IF
                this%isshared = .TRUE.
 #endif
             ELSE
@@ -468,7 +492,9 @@
 
             ! Initialize the block
             IF (ldebug .and. shar_rank == 0) WRITE(6, *) 'Init block: ', ik
-            CALL INIT_BLOCK(wall%blocks(ik),xmin,xmax,ymin,ymax,zmin,zmax,nface_block,istat,comm,shar_comm)
+            CALL INIT_BLOCK(wall%blocks(ik),xmin,xmax,ymin,ymax,zmin,zmax, &
+               nface_block,istat,comm,shar_comm,pooled_faces=.TRUE.)
+            IF (istat/=0) RETURN
 
             IF (ldebug .and. shar_rank == 0) WRITE(6, *) 'Init block done: ', ik
             ! Also only deallocate if nface > 0
@@ -1704,7 +1730,9 @@
          DO i=1, wall%nblocks
             IF (counter_arr(i) > 0) THEN
                IF (lcomm) THEN 
-                  CALL mpialloc_1d_int(wall%blocks(i)%face, counter_arr(i), shar_rank, 0, shar_comm, wall%blocks(i)%win_face)
+                  CALL ALLOCATE_BLOCK_FACES(wall%blocks(i), &
+                     counter_arr(i), shar_comm, istat)
+                  IF (istat/=0) RETURN
                ELSE
                   ALLOCATE(wall%blocks(i)%face(counter_arr(i)), STAT=istat)
                END IF
@@ -1931,6 +1959,51 @@
 !!    Wall Destructors
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+      SUBROUTINE ALLOCATE_BLOCK_FACES(this, count, shared_comm, istat)
+      ! Allocate one block view without creating one MPI window per block.
+         TYPE(block), INTENT(inout) :: this
+         INTEGER, INTENT(in) :: count
+         INTEGER, INTENT(inout) :: shared_comm, istat
+         TYPE(candidate_chunk), POINTER :: chunk
+         LOGICAL :: need_chunk
+         INTEGER :: first, last
+
+         need_chunk = .TRUE.
+         IF (ASSOCIATED(candidate_tail)) THEN
+            need_chunk = count > SIZE(candidate_tail%values) - candidate_tail%used
+         END IF
+         IF (need_chunk) THEN
+            ALLOCATE(chunk, STAT=istat)
+            IF (istat/=0) RETURN
+            CALL mpialloc_1d_int(chunk%values, MAX(candidate_chunk_size, count), &
+               shar_rank, 0, shared_comm, chunk%win)
+            IF (ASSOCIATED(candidate_tail)) THEN
+               candidate_tail%next => chunk
+            ELSE
+               candidate_head => chunk
+            END IF
+            candidate_tail => chunk
+         END IF
+         first = candidate_tail%used + 1
+         last = candidate_tail%used + count
+         this%face => candidate_tail%values(first:last)
+         candidate_tail%used = last
+         this%pooled = .TRUE.
+      END SUBROUTINE ALLOCATE_BLOCK_FACES
+
+      SUBROUTINE FREE_CANDIDATE_POOL()
+         TYPE(candidate_chunk), POINTER :: chunk, following
+
+         chunk => candidate_head
+         DO WHILE (ASSOCIATED(chunk))
+            following => chunk%next
+            CALL free_mpi_array(chunk%win, chunk%values, .TRUE.)
+            DEALLOCATE(chunk)
+            chunk => following
+         END DO
+         NULLIFY(candidate_head, candidate_tail)
+      END SUBROUTINE FREE_CANDIDATE_POOL
+
       SUBROUTINE BLOCK_DESTROY(this)
       !-----------------------------------------------------------------------
       ! BLOCK_DESTROY: Destroys a single block
@@ -1939,7 +2012,12 @@
       !-----------------------------------------------------------------------
          IMPLICIT NONE
          TYPE(block), INTENT(inout) :: this
-         IF (this%nfaces > 0) CALL free_mpi_array(this%win_face, this%face, this%isshared)
+         IF (this%pooled) THEN
+            NULLIFY(this%face)
+         ELSE IF (this%nfaces > 0) THEN
+            CALL free_mpi_array(this%win_face, this%face, this%isshared)
+         END IF
+         this%pooled = .FALSE.
          this%isshared = .FALSE.
          this%nfaces = 0
          RETURN
@@ -1965,6 +2043,7 @@
             CALL BLOCK_DESTROY(wall%blocks(i))
          END DO
          DEALLOCATE(wall%blocks)
+         CALL FREE_CANDIDATE_POOL()
          wall%nblocks = -1
       END IF
       IF (PRESENT(shared_comm)) THEN

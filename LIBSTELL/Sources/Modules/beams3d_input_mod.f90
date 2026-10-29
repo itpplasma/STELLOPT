@@ -84,6 +84,8 @@
 !            plasma_mass    Mean plasma mass in [kg]
 !            Zeff           <Z> = sum(n_k*Z_k^2)/sum(n_k*Z_k)
 !            plasma_Zmean   [Z] = sum(n_k*Z_k^2*(plasma_mass/m_k))/sum(n_k*Z_k)
+!                           With NI_AUX_F both are set at the first profile
+!                           point; BEAMS3D then uses the local ion mix.
 !
 !            NOTE:  Some grid parameters may be overriden (such as
 !                   phimin and phimax) to properly represent a given
@@ -221,6 +223,7 @@
       zeff_scale = 1.0
       fusion_scale = 1.0
       plasma_Zmean = 1.0
+      lion_mix = .false.
       plasma_mass = 1.6726219E-27 ! Assume Hydrogen
       therm_factor = 1.5 ! Factor at which to thermalize particles
       lendt_m = 0.05 ! Max distance a particle travels
@@ -411,6 +414,7 @@
             END DO
             plasma_mass = SUM(NI_AUX_F(:,1)*NI_AUX_M*NI_AUX_M)/(SUM(NI_AUX_F(:,1)*NI_AUX_M))
             plasma_Zmean = SUM(NI_AUX_F(:,1)*NI_AUX_Z*NI_AUX_Z*plasma_mass/NI_AUX_M,DIM=1,MASK=(NI_AUX_M>1E-27))/(SUM(NI_AUX_F(:,1)*NI_AUX_Z))
+            lion_mix = .true.
             ! Set indices for T and D
             DO ik = 1, NION
                IF ((NI_AUX_Z(ik) == 1) .and. (NINT(NI_AUX_M(ik)*6.02214076208E+26) == 3)) dexionT = ik
@@ -439,6 +443,7 @@
             END DO
             plasma_mass = SUM(NI_AUX_F(:,1)*NI_AUX_M*NI_AUX_M)/(SUM(NI_AUX_F(:,1)*NI_AUX_M))
             plasma_Zmean = SUM(NI_AUX_F(:,1)*NI_AUX_Z*NI_AUX_Z*plasma_mass/NI_AUX_M,DIM=1,MASK=(NI_AUX_M>1E-27))/(SUM(NI_AUX_F(:,1)*NI_AUX_Z))
+            lion_mix = .true.
          ELSEIF (nne > 0) THEN ! Ni=Ne, Z=Zeff
             NI_AUX_Z(1) = 1 ! Assume Hydrogen Plasma
             NI_AUX_M(1) = plasma_mass

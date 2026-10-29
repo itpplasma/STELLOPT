@@ -36,7 +36,8 @@ MODULE beams3d_physics_mod
                               hr, hp, hz, hri, hpi, hzi, &
                               B_kick_min, B_kick_max, E_kick, freq_kick, &
                               nsub_fullorbit, &
-                              plasma_mass, NI5D, BR4D, BZ4D, BPHI4D,plasma_Zmean
+                              plasma_mass, NI5D, BR4D, BZ4D, BPHI4D,plasma_Zmean, &
+                              therm_factor, lion_mix
       USE EZspline_obj
       USE EZspline
       USE adas_mod_parallel
@@ -44,7 +45,8 @@ MODULE beams3d_physics_mod
                                      COULOMB_LOG_NRL_IEA, &
                                      COULOMB_LOG_NRL_IEB, &
                                      V_CRITICAL, V_CRITICAL_WEILAND, &
-                                     TAU_SPITZER
+                                     TAU_SPITZER, SET_CRIT_FACTOR, &
+                                     SET_COULOMB_FACTOR
       USE fusion_mod, ONLY: DT_CROSS_SECTION, DD_CROSS_SECTION, &
                             DDHe3_CROSS_SECTION, DHe3_CROSS_SECTION
       USE mpi_params 
@@ -121,6 +123,31 @@ MODULE beams3d_physics_mod
          lvalid = b > 0.0 .and. ieee_is_finite(s) .and. &
                   ieee_is_finite(u) .and. ieee_is_finite(b)
       END SUBROUTINE beams3d_event_diagnostics
+
+      !-----------------------------------------------------------------
+      !     Subroutine:    set_local_ion_mix
+      !     Description:   Sets [Z], the mean ion mass and the factors
+      !                    that depend on them from the ion densities at
+      !                    the marker, as beams3d_input_mod does with the
+      !                    first profile point.
+      !-----------------------------------------------------------------
+      SUBROUTINE set_local_ion_mix(ni_in)
+         IMPLICIT NONE
+         DOUBLE PRECISION, INTENT(in) :: ni_in(NION)
+         DOUBLE PRECISION :: nz, mass_loc, zmean_loc
+         nz = SUM(ni_in*NI_AUX_Z)
+         IF (nz > zero) THEN
+            mass_loc  = SUM(ni_in*NI_AUX_M*NI_AUX_M)/SUM(ni_in*NI_AUX_M)
+            zmean_loc = SUM(ni_in*NI_AUX_Z*NI_AUX_Z*mass_loc/NI_AUX_M,DIM=1,MASK=(NI_AUX_M>1E-27))/nz
+         ELSE
+            mass_loc  = plasma_mass
+            zmean_loc = plasma_Zmean
+         END IF
+         CALL SET_CRIT_FACTOR(zmean_loc,mass_loc)
+         CALL SET_COULOMB_FACTOR(mymass,myZ,mass_loc)
+         fact_pa     = mass_loc/(mymass*zmean_loc)
+         fact_vsound = 1.5*SQRT(e_charge/mass_loc)*therm_factor
+      END SUBROUTINE set_local_ion_mix
 
       !-----------------------------------------------------------------
       !     Function:      coll_op_nrl19
@@ -348,6 +375,7 @@ MODULE beams3d_physics_mod
                   NI5D(1,1,1,1,l),nr,nphi,nz)
                ni_temp(l) = max(fval(1),zero) !Set to one to prevent NaN Zeff later on
             END DO
+            IF (lion_mix) CALL set_local_ion_mix(ni_temp)
 
             !-----------------------------------------------------------
             !  Apply toroidal rotation
@@ -600,6 +628,7 @@ MODULE beams3d_physics_mod
                   NI5D(1,1,1,1,l),nr,nphi,nz)
                ni_temp(l) = max(fval(1),zero) !Set to one to prevent NaN Zeff later on
             END DO
+            IF (lion_mix) CALL set_local_ion_mix(ni_temp)
             CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             BPHI4D(1,1,1,1),nr,nphi,nz)

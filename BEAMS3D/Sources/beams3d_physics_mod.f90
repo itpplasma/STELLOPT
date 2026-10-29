@@ -431,9 +431,6 @@ MODULE beams3d_physics_mod
             !     speed2inv    v**-2 [m^3/s^3]
             !     ddve
             !------------------------------------------------------------
-            ddve = zero; ddvi = zero; sigma = zero; zeta = zero;
-            factor_ion = one; factor_electron = one
-#if defined(B3D_VEL_DIFFUSION)
             speed3inv = 1.0/(speed*speed*speed)
             speed2inv = speed*speed3inv
             ddve=ABS(2*e_charge*dt*te_temp*inv_mymass*tau_spit_inv)
@@ -444,7 +441,6 @@ MODULE beams3d_physics_mod
             ddvi=zeta*ddvi/sigma
             factor_electron = ( 1.0 - 2.0*te_temp*inv_mymass*e_charge*speed2inv)
             factor_ion      = ( 1.0 +     ti_temp*inv_mymass*e_charge*speed2inv)
-#endif
             !-----------------------------------------------------------
             !  Viscouse Velocity Reduction
             !     dve       Speed change due to electron slowing down 

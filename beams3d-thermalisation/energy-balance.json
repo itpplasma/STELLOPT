@@ -1,0 +1,50 @@
+[
+  {
+    "model": "Guiding centre",
+    "stage": "before",
+    "birth_keV": 1.013722290185197,
+    "electron_keV": -0.010781830042591133,
+    "ion_keV": 0.9500355452066702,
+    "balance": 0.9265394716658413,
+    "terminal_keV": 0.07689684373569101,
+    "states": {
+      "1": 4096
+    }
+  },
+  {
+    "model": "Guiding centre",
+    "stage": "after",
+    "birth_keV": 1.013722290185197,
+    "electron_keV": -0.010572380316400136,
+    "ion_keV": 1.0090231792115938,
+    "balance": 0.9849352318303928,
+    "terminal_keV": 0.07687019146746073,
+    "states": {
+      "1": 4096
+    }
+  },
+  {
+    "model": "Full orbit",
+    "stage": "before",
+    "birth_keV": 3.0411668705553647,
+    "electron_keV": -0.006304960205359256,
+    "ion_keV": 1.997626464705445,
+    "balance": 0.6547886351716173,
+    "terminal_keV": 1.101172891107578,
+    "states": {
+      "1": 4096
+    }
+  },
+  {
+    "model": "Full orbit",
+    "stage": "after",
+    "birth_keV": 3.0411668705553647,
+    "electron_keV": -0.007519371324836609,
+    "ion_keV": 3.0792527328084245,
+    "balance": 1.010050908821929,
+    "terminal_keV": 1.101122649315013,
+    "states": {
+      "1": 4096
+    }
+  }
+]

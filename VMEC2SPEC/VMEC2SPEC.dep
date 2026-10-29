@@ -5,6 +5,7 @@ main.o: \
       
 
 spec_init.o: \
+      spec_background.o \
       spec_runtime.o \
       spec_input_mod.o
       

@@ -225,6 +225,7 @@ chisq_kappa_avg.o : \
 
 
 chisq_kink.o : \
+      equil_vals.o \
       stellopt_runtime.o \
       $(LIB_DIR)/$(LOCTYPE)/stellopt_targets.o 
 
@@ -552,6 +553,7 @@ chisq_mse.o : \
       
 
 chisq_neo.o : \
+      equil_vals.o \
       stellopt_runtime.o \
       $(LIB_DIR)/$(LOCTYPE)/stellopt_targets.o \
       equil_utils.o
@@ -718,6 +720,7 @@ chisq_curvature_p2.o : \
       $(LIB_DIR)/$(LOCTYPE)/read_wout_mod.o
       
 stellopt_balloon.o : \
+      equil_vals.o \
       stellopt_runtime.o \
       $(LIB_DIR)/$(LOCTYPE)/stellopt_input_mod.o \
       $(LIB_DIR)/$(LOCTYPE)/stellopt_vars.o \
@@ -741,6 +744,7 @@ stellopt_bootsj.o : \
       
 
 stellopt_sfincs.o : \
+      equil_vals.o \
       stellopt_runtime.o \
       $(LIB_DIR)/$(LOCTYPE)/stellopt_input_mod.o \
       $(LIB_DIR)/$(LOCTYPE)/stellopt_vars.o \
@@ -1027,6 +1031,7 @@ equil_vals.o : \
 
 
 stellopt_orbits.o : \
+      equil_vals.o \
       stellopt_runtime.o \
       $(LIB_DIR)/$(LOCTYPE)/stellopt_targets.o \
       equil_utils.o \
@@ -1078,7 +1083,12 @@ stellopt_mango.o : \
       $(LIB_DIR)/$(LOCTYPE)/mpi_params.o 
 
 chisq_template.o : \
+      stellopt_runtime.o \
       $(LIB_DIR)/$(LOCTYPE)/stellopt_targets.o
 
 chisq_jinvariant.o : \
+      stellopt_runtime.o \
       $(LIB_DIR)/$(LOCTYPE)/stellopt_targets.o 
+
+stellopt_winding_surface.o : \
+      stellopt_runtime.o

@@ -334,4 +334,16 @@ fieldlines_init_nescoil.o: \
       fieldlines_grid.o
       
 normal_vector.o : \
+      fieldlines_grid.o \
       fieldlines_runtime.o             
+
+fieldlines_init_mumat.o : \
+      fieldlines_grid.o \
+      fieldlines_runtime.o
+
+fmap_nag.o : \
+      fieldlines_grid.o \
+      fieldlines_runtime.o
+
+scaleup_boundary.o : \
+      fieldlines_grid.o

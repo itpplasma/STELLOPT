@@ -28,6 +28,9 @@ if __name__=="__main__":
     if not run_name: sys.exit(0)
     lfail = False
     failtol = 5.0
+    tols = {}
+    # Monte Carlo profiles, compared bin by bin relative to their peak
+    profiles = set()
     b3d = BEAMS3D()
     try:
         b3d.read_beams3d(f'beams3d_{run_name}.h5')
@@ -122,8 +125,12 @@ if __name__=="__main__":
         assert np.array_equal(b3d.wall_hit_time[valid], time_lines[rows, last])
     if run_name in ['ORBITS_slow']:
         data['vll0']=b3d.vll_lines[0,:].flatten().tolist()
-        data['epower']=(b3d.epower_prof[0,:].flatten()*1.0E20).tolist() # factor to make values visible in output.
-        data['ipower']=(b3d.ipower_prof[0,:].flatten()*1.0E20).tolist()
+        # 40 markers: the radial profiles are Monte Carlo noise bin by bin,
+        # so only their totals are compared. The ion total scatters by about
+        # 3 % between runs (Ti = 100 eV, set by the few slowest markers).
+        data['epower_total']=np.sum(b3d.epower_prof[0,:])*1.0E20 # factor to make values visible in output.
+        data['ipower_total']=np.sum(b3d.ipower_prof[0,:])*1.0E20
+        tols['ipower_total'] = 15.0
     if run_name in ['ORBITS_slowz']:
         # Identical H markers at 55 keV in a uniform H+C plasma. The mean and
         # variance of the speed must follow the Fokker-Planck operator for
@@ -172,6 +179,7 @@ if __name__=="__main__":
         data['Deposition_B1E2'] = depo[1,:].flatten().tolist()
         data['Deposition_B2E1'] = depo[3,:].flatten().tolist()
         data['Deposition_B2E2'] = depo[4,:].flatten().tolist()
+        profiles.update(['Shinethrough','Deposition_B1E1','Deposition_B1E2','Deposition_B2E1','Deposition_B2E2'])
         failtol = 25.0
     if run_name in ['ORBITS_restart']:
         data['LOSS_PCT'] = 100*sum(b3d.end_state==2)/b3d.nparticles
@@ -181,11 +189,17 @@ if __name__=="__main__":
         data['Birth_T']   = depo[1,:].tolist()
         data['Birth_p']   = depo[2,:].tolist()
         data['Birth_He3'] = depo[3,:].tolist()
+        profiles.update(['Birth_He4','Birth_T','Birth_p','Birth_He3'])
     if run_name in ['ORBITS_dist']:
-        data['dense_prof'] = b3d.dense_prof.flatten().tolist()
-        data['ipower_prof'] = b3d.ipower_prof.flatten().tolist()
-        data['epower_prof'] = b3d.epower_prof.flatten().tolist()
-        data['j_prof'] = b3d.j_prof.flatten().tolist()
+        # Bin values are Monte Carlo noise of the order of the profile peak,
+        # so only the totals are compared. Between runs they scatter by 1-2 %,
+        # the net current (co and counter beam) by 8 %.
+        data['dense_total'] = np.sum(b3d.dense_prof)
+        data['ipower_total'] = np.sum(b3d.ipower_prof)
+        data['epower_total'] = np.sum(b3d.epower_prof)
+        data['j_total'] = np.sum(b3d.j_prof)
+        failtol = 10.0
+        tols['j_total'] = 30.0
 
     # Read or write to the database file.
     if args.lmake_db:
@@ -216,11 +230,12 @@ if __name__=="__main__":
     for temp in varlist:
         act = varlist[temp]
         cal = data[temp]
+        tol = tols.get(temp, failtol)
         if np.isscalar(act) == 1:
             if act == 0:
                 perct = 0
             else:
-                perct = 100*abs(act-cal)/act
+                perct = 100*abs(act-cal)/abs(act)
             print(f'  {temp} {cal:7.6f} {act:7.6f} {round(perct)}')
         elif temp == 'wall_strikes':
             act = np.array(act)
@@ -233,13 +248,20 @@ if __name__=="__main__":
             print(temp)
             act = np.array(act)
             cal = np.array(cal)
-            cal = np.where(act==0,0,cal)
-            div = np.where(act==0,1,act)
+            if temp in profiles:
+                # Relative to the profile peak, so that nearly empty bins
+                # do not fail on sampling noise.
+                div = np.full(len(act), max(np.max(np.abs(act)), 1.0E-30))
+            else:
+                cal = np.where(act==0,0,cal)
+                div = np.where(act==0,1,act)
             print(f'  Quantity: {temp} -- CODE -- REF. -- %')
             for i in range(len(act)):
                 perct = 100*abs(act[i]-cal[i])/div[i]
                 print(f'  {i} {cal[i]:7.6f} {act[i]:7.6f} {round(perct)}')
-        if perct > failtol:
+                if perct > tol:
+                    lfail = True
+        if perct > tol:
             lfail = True
         print('=================')
 

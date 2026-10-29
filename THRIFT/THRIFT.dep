@@ -56,6 +56,7 @@ thrift_equil.o : \
       $(LIB_DIR)/$(LOCTYPE)/stel_kinds.o 
 
 thrift_equil_j.o : \
+      thrift_funcs.o \
       thrift_runtime.o \
       thrift_vars.o \
       thrift_equil.o \
@@ -64,17 +65,21 @@ thrift_equil_j.o : \
       $(LIB_DIR)/$(LOCTYPE)/ezspline_obj.o 
 
 thrift_equil_p.o : \
+      thrift_plasma_solver_mod.o \
       thrift_runtime.o \
       thrift_vars.o \
       thrift_profiles_mod.o \
       $(LIB_DIR)/$(LOCTYPE)/vmec_input.o
 
 thrift_evolve.o : \
+      thrift_equil.o \
       thrift_runtime.o \
       thrift_vars.o \
       thrift_funcs.o
 
 thrift_init.o : \
+      thrift_equil.o \
+      thrift_plasma_solver_mod.o \
       thrift_runtime.o \
       thrift_vars.o \
       thrift_profiles_mod.o \
@@ -92,6 +97,7 @@ thrift_init_mpisubgroup.o : \
       $(LIB_DIR)/$(LOCTYPE)/safe_open_mod.o 
 
 thrift_interface_mod.o : \
+      thrift_vars.o \
       thrift_runtime.o \
       $(LIB_DIR)/$(LOCTYPE)/mpi_inc.o \
       $(LIB_DIR)/$(LOCTYPE)/mpi_params.o \
@@ -138,6 +144,7 @@ thrift_paraexe.o : \
       $(VMEC_DIR)/$(LOCTYPE)/vmec_params.o
 
 thrift_penta.o : \
+      thrift_plasma_solver_mod.o \
       thrift_runtime.o \
       thrift_vars.o \
       thrift_profiles_mod.o \
@@ -182,6 +189,7 @@ thrift_runtime.o : \
       $(LIB_DIR)/$(LOCTYPE)/mpi_params.o 
 
 thrift_run_bootstrap.o : \
+      thrift_profiles_mod.o \
       thrift_runtime.o \
       thrift_equil.o \
       thrift_vars.o \
@@ -226,6 +234,13 @@ thrift_vars.o : \
       $(LIB_DIR)/$(LOCTYPE)/stel_kinds.o 
 
 thrift_write.o : \
+      thrift_plasma_solver_mod.o \
+      thrift_profiles_mod.o \
       thrift_runtime.o \
       thrift_vars.o \
       $(LIB_DIR)/$(LOCTYPE)/ez_hdf5.o 
+
+thrift_restart.o : \
+      thrift_equil.o \
+      thrift_runtime.o \
+      thrift_vars.o

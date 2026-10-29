@@ -17,6 +17,7 @@ write_pies_input.o: \
       
 
 pies_init.o: \
+      pies_background.o \
       pies_runtime.o \
       pies_input_mod.o
       
@@ -105,8 +106,23 @@ write_pies_coil.o : \
       pies_background.o
       
 toroidal_flux.o : \
+      pies_background.o \
+      pies_profile.o \
+      pies_realspace.o \
       pies_runtime.o 
 
 main.o : \
+      pies_background.o \
       pies_runtime.o
       
+
+calc_metrics.o : \
+      pies_background.o \
+      pies_profile.o \
+      pies_realspace.o \
+      pies_runtime.o
+
+init_profiles.o : \
+      pies_background.o \
+      pies_profile.o \
+      pies_runtime.o

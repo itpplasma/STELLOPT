@@ -10,6 +10,7 @@ nescoil_input_mod.o : \
 conrec.o :
 
 spline_coils_mod.o : \
+      safe_open_mod.o \
       ezspline.o \
       ezspline_obj.o \
       biotsavart.o \
@@ -40,6 +41,8 @@ stellopt_vars.o : \
       stellopt_globals.o
 
 stellopt_targets.o : \
+      vparams.o \
+      vsvd0.o \
       stel_kinds.o  \
       stellopt_vars.o \
       stellopt_globals.o
@@ -119,6 +122,7 @@ read_hint_mod.o :  \
       stel_kinds.o 
       
 read_eqdsk_mod.o :  \
+      safe_open_mod.o \
       ezspline.o \
       ezspline_obj.o \
       stel_kinds.o \
@@ -247,6 +251,7 @@ ezspline.o : \
       ezcdf.o
       
 adas_mod_simpl.o : \
+      ezcdf.o \
       ezspline_obj.o \
       ezspline.o \
       adas_bms_splines.o 
@@ -261,6 +266,7 @@ mpi_params.o : \
 
 
 magnetic_response.o : \
+      ezcdf.o \
       compression.o \
       profiler.o \
       stel_kinds.o \
@@ -569,6 +575,7 @@ line_segment.o : \
       
 
 profile_functions.o : \
+      vparams.o \
       line_segment.o \
       stel_kinds.o \
       stel_constants.o \
@@ -1065,6 +1072,8 @@ diagnostic_T.o : \
       
 
 extcurz_T.o : \
+      safe_open_mod.o \
+      stel_kinds.o \
       stel_constants.o 
       
 
@@ -1176,6 +1185,7 @@ packafile.o : \
       
 
 read_boozer_mod.o : \
+      mpi_inc.o \
       ezcdf.o \
       safe_open_mod.o \
       stel_constants.o \
@@ -1205,6 +1215,7 @@ read_v3post_mod.o : \
       
 
 read_wout_mod.o : \
+      vsvd0.o \
       ezcdf.o \
       mgrid_mod.o \
       safe_open_mod.o \
@@ -1275,6 +1286,8 @@ vf_coils.o : \
       
 
 vmec_input.o : \
+      mpi_inc.o \
+      mpi_params.o \
       stel_constants.o \
       vparams.o \
       vsvd0.o 
@@ -1372,6 +1385,7 @@ stepopt_mp.o : \
       
 
 mgrid_field_mod.o : \
+      mpi_sharmem.o \
       mpi_inc.o \
       stel_kinds.o \
       mgrid_mod.o \
@@ -1398,6 +1412,7 @@ mumaterial_mod.o : \
       
 
 virtual_casing_mod.o : \
+      mpi_sharmem.o \
       ezspline_obj.o \
       ezspline.o
 
@@ -1466,10 +1481,12 @@ coordinate_utilities.o : \
 suzuki_sigma.o : 
 
 stel_tools.o : \
+      mpi_sharmem.o \
       ezspline.o \
       ezspline_obj.o
 
 mir_tools.o : \
+      ezspline.o \
       read_wout_mod.o \
       ezspline_obj.o      
 
@@ -1480,6 +1497,8 @@ vmec_chdir.o : \
       mpi_inc.o
 
 thscte_T.o : \
+      safe_open_mod.o \
+      stel_kinds.o \
       stel_constants.o
 
 spline_cubic.o : \
@@ -1502,3 +1521,9 @@ gmres.o : \
 
 compression.o : \
       ezcdf.o
+
+PCHEZ.o : \
+      stel_kinds.o
+
+chaotic_coords_mod.o : \
+      safe_open_mod.o

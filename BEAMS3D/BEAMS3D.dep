@@ -19,6 +19,7 @@ beams3d_interface_mod.o: \
       ../../LIBSTELL/$(LOCTYPE)/mpi_params.o 
 
 beams3d_imas_module.o: \
+      beams3d_runtime.o \
       beams3d_interface_mod.o \
       ../../LIBSTELL/$(LOCTYPE)/beams3d_input_mod.o 
 
@@ -105,6 +106,7 @@ beams3d_follow.o: \
 
 
 beams3d_follow_gc.o: \
+      beams3d_physics_mod.o \
       ../../LIBSTELL/$(LOCTYPE)/stel_kinds.o \
       ../../LIBSTELL/$(LOCTYPE)/safe_open_mod.o \
       ../../LIBSTELL/$(LOCTYPE)/collision_operators.o \
@@ -117,6 +119,7 @@ beams3d_follow_gc.o: \
 
 
 beams3d_follow_fo.o: \
+      beams3d_physics_mod.o \
       ../../LIBSTELL/$(LOCTYPE)/stel_kinds.o \
       ../../LIBSTELL/$(LOCTYPE)/safe_open_mod.o \
       ../../LIBSTELL/$(LOCTYPE)/collision_operators.o \
@@ -143,6 +146,7 @@ beams3d_grid.o: \
       
 
 beams3d_init.o: \
+      beams3d_physics_mod.o \
       ../../LIBSTELL/$(LOCTYPE)/stel_kinds.o \
       ../../LIBSTELL/$(LOCTYPE)/vmec_input.o \
       ../../LIBSTELL/$(LOCTYPE)/mpi_params.o \

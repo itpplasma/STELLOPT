@@ -29,6 +29,7 @@ aspectratio.o : \
       
 
 bcovar.o : \
+      angle_constraints.o \
       ../../LIBSTELL/$(LOCTYPE)/vmec_input.o \
       fbal.o \
       parallel_include_module.o \
@@ -85,6 +86,9 @@ forces.o : \
       
 
 funct3d.o : \
+      angle_constraints.o \
+      blocktridiagonalsolver.o \
+      parallel_vmec_module.o \
       ../../LIBSTELL/$(LOCTYPE)/vmec_utils.o \
       ../../LIBSTELL/$(LOCTYPE)/vparams.o \
       parallel_include_module.o \
@@ -135,6 +139,7 @@ realspace.o : \
       
 
 residue.o : \
+      blocktridiagonalsolver.o \
       angle_constraints.o \
       parallel_include_module.o \
       parallel_vmec_module.o \
@@ -146,6 +151,7 @@ residue.o : \
       
 
 scalfor.o : \
+      parallel_vmec_module.o \
       ../../LIBSTELL/$(LOCTYPE)/stel_kinds.o \
       blocktridiagonalsolver_bst.o \
       parallel_include_module.o \
@@ -223,6 +229,8 @@ xstuff.o : \
       
 
 precon2d.o : \
+      parallel_include_module.o \
+      parallel_vmec_module.o \
       ../../LIBSTELL/$(LOCTYPE)/safe_open_mod.o \
       ../../LIBSTELL/$(LOCTYPE)/stel_kinds.o \
       ../../LIBSTELL/$(LOCTYPE)/vmec_input.o \
@@ -432,6 +440,7 @@ eqfor.o : \
       
 
 fileout.o : \
+      vacmod.o \
       ../../LIBSTELL/$(LOCTYPE)/safe_open_mod.o \
       angle_constraints.o \
       parallel_include_module.o \
@@ -510,6 +519,7 @@ read_indata.o : \
       
 
 readin.o : \
+      parallel_vmec_module.o \
       ../../LIBSTELL/$(LOCTYPE)/mgrid_mod.o \
       init_geometry.o \
       parallel_include_module.o \
@@ -553,6 +563,7 @@ write_dcon.o : \
       
 
 wrout.o : \
+      vac_persistent.o \
       ../../LIBSTELL/$(LOCTYPE)/ezcdf.o \
       ../../LIBSTELL/$(LOCTYPE)/mgrid_mod.o \
       ../../LIBSTELL/$(LOCTYPE)/read_wout_mod.o \
@@ -740,6 +751,8 @@ vspline.o : \
       
 
 eqsolve.o : \
+      gmres_mod.o \
+      parallel_vmec_module.o \
       directaccess.o \
       parallel_include_module.o \
       precon2d.o \
@@ -752,6 +765,8 @@ eqsolve.o : \
       
 
 evolve.o : \
+      parallel_vmec_module.o \
+      realspace.o \
       gmres_mod.o \
       parallel_include_module.o \
       precon2d.o \
@@ -762,6 +777,8 @@ evolve.o : \
       
 
 gmres_mod.o : \
+      blocktridiagonalsolver.o \
+      parallel_vmec_module.o \
       precon2d.o \
       ../../LIBSTELL/$(LOCTYPE)/stel_kinds.o \
       ../../LIBSTELL/$(LOCTYPE)/gmres.o \
@@ -791,12 +808,14 @@ parallel_vmec_module.o : \
       
 
 restart.o : \
+      parallel_vmec_module.o \
       parallel_include_module.o \
       vmec_main.o \
       xstuff.o 
       
 
 runvmec.o : \
+      realspace.o \
       blocktridiagonalsolver_bst.o \
       parallel_include_module.o \
       parallel_vmec_module.o \
@@ -818,6 +837,7 @@ vmec.o : \
       
 
 vmec_imas.o : \
+      vmec_persistent.o \
       ../../LIBSTELL/$(LOCTYPE)/safe_open_mod.o \
       ../../LIBSTELL/$(LOCTYPE)/vmec_input.o \
       ../../LIBSTELL/$(LOCTYPE)/vmec_seq.o \

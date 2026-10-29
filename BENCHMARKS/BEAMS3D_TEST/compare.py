@@ -131,8 +131,9 @@ if __name__=="__main__":
         data['epower_total']=np.sum(b3d.epower_prof[0,:])*1.0E20 # factor to make values visible in output.
         data['ipower_total']=np.sum(b3d.ipower_prof[0,:])*1.0E20
         tols['ipower_total'] = 15.0
-    if run_name in ['ORBITS_slowz']:
-        # Identical H markers at 55 keV in a uniform H+C plasma. The mean and
+    if run_name in ['ORBITS_slowz','ORBITS_slowzr']:
+        # Identical H markers at 55 keV in a uniform H+C plasma (ORBITS_slowzr:
+        # 20 keV, and a different mix near the axis, away from the markers). The mean and
         # variance of the speed must follow the Fokker-Planck operator for
         # Maxwellian electrons and ions (Rosenbluth potentials, as in Helander
         # and Sigmar ch. 3) with NRL Coulomb logarithms, to second order:

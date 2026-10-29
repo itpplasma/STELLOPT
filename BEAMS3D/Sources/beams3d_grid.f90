@@ -14,7 +14,7 @@
       USE beams3d_globals, ONLY: nr, nphi, nz, rmin, rmax, zmin, zmax, &
                                  phimin, phimax, vc_adapt_tol, nte, &
                                  nne, nti,nzeff, nomeg,npot, plasma_mass, &
-                                 plasma_Zmean, therm_factor, &
+                                 plasma_Zmean, therm_factor, lion_mix, &
                                  B_kick_min, B_kick_max, freq_kick, &
                                  E_kick, rho_fullorbit, nsub_fullorbit, &
                                  rmin_fida, &

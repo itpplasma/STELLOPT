@@ -48,6 +48,8 @@
       ! moved from beams3d_lines
       INTEGER  ::  ns_prof1, ns_prof2, ns_prof3, ns_prof4, ns_prof5, nsh_prof4, nparticles
       REAL(rprec) :: partvmax, plasma_Zmean, plasma_mass
+      ! True when NI_AUX_F sets the ion mix, which may vary with radius
+      LOGICAL :: lion_mix
 
       ! moved from beams3d_grid
       INTEGER  ::    nr, nphi, nz, nte, nne, nti, nzeff, nomeg, npot, nr_fida, nphi_fida, nz_fida, nenergy_fida, npitch_fida, dexionT, dexionD, dexionHe3

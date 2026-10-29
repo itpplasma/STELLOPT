@@ -32,6 +32,7 @@ test_beams3d:
 	$(MAKE) test_beams3d_event_modes
 	$(MAKE) test_beams3d_slow
 	$(MAKE) test_beams3d_slowz
+	$(MAKE) test_beams3d_slowzr
 	@if [ -n "$(ADASDIR)" ]; then \
 		if [ -d $(ADASDIR) ]; then \
 			$(MAKE) test_beams3d_depo_adas;\
@@ -221,6 +222,13 @@ test_beams3d_slowz:
 	@echo $(MPI_RUN) $(MPI_RUN_OPTS_SM) $(MYHOME)/xbeams3d -vmec ORBITS_slowz -plasma -collisions
 	@cd $(BEAMS3D_TEST_DIR); $(MPI_RUN) $(MPI_RUN_OPTS_SM) $(MYHOME)/xbeams3d -vmec ORBITS_slowz -plasma -collisions
 	@cd $(BEAMS3D_TEST_DIR); ./compare.py --file ORBITS_slowz
+	@echo ""
+
+test_beams3d_slowzr:
+	@cd $(BEAMS3D_TEST_DIR); rm -f *.h5 *.txt;
+	@echo $(MPI_RUN) $(MPI_RUN_OPTS_SM) $(MYHOME)/xbeams3d -vmec ORBITS_slowzr -plasma -collisions
+	@cd $(BEAMS3D_TEST_DIR); $(MPI_RUN) $(MPI_RUN_OPTS_SM) $(MYHOME)/xbeams3d -vmec ORBITS_slowzr -plasma -collisions
+	@cd $(BEAMS3D_TEST_DIR); ./compare.py --file ORBITS_slowzr
 	@echo ""
 
 test_beams3d_depo:

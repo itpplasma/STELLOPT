@@ -7,8 +7,9 @@ Report problems with this fork here, not upstream.
 
 Main differences to upstream `develop`:
 
-* BEAMS3D: VMEC grid construction made deterministic, integer grid indices, VMEC splines extended outside the LCFS, collocated boundary events recorded, shared wall candidates pooled to bound MPI window contexts.
-* VMEC: axis geometry preserved while enforcing regularity, lambda normalization preserved across restarts.
+* BEAMS3D: VMEC grid construction made deterministic, integer grid indices, VMEC splines extended outside the LCFS, collocated boundary events recorded, shared wall candidates pooled to bound MPI window contexts, default collision operator with the electron-ion Coulomb logarithm in the Spitzer time and [Z] in the critical velocity (new benchmark ORBITS_slowz).
+* VMEC: axis geometry preserved while enforcing regularity, lambda normalization preserved across restarts, wrong-sign `PHIEDGE` error flag kept.
+* BOOZ_XFORM: tangent-linear and adjoint of the Boozer spectrum (`booz_ad`, `xbooz_xform_ad`).
 * Build: failures propagated from `build_all`, MPI declarations compiled in serial builds, serial magnetic-material build paths restored, BEAMS physics dependency on the wall module tracked.
 
 # INSTALLATION

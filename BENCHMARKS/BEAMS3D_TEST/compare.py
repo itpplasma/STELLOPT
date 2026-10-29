@@ -131,6 +131,18 @@ if __name__=="__main__":
         data['epower_total']=np.sum(b3d.epower_prof[0,:])*1.0E20 # factor to make values visible in output.
         data['ipower_total']=np.sum(b3d.ipower_prof[0,:])*1.0E20
         tols['ipower_total'] = 15.0
+    if run_name in ['ORBITS_thermal', 'ORBITS_thermalfo']:
+        # Uniform plasma in the circular R=10 m, a=1 m torus. Integrate
+        # W/m^3 over analytic shell volumes; marker weights are particles/s.
+        assert np.all(b3d.end_state == 1), 'Thermalisation case has live/lost markers'
+        rho = (np.arange(b3d.ns_prof1) + 0.5)/b3d.ns_prof1
+        shell_volume = 4*np.pi**2*10.0*rho/b3d.ns_prof1
+        birth = 0.5*b3d.mass*b3d.vll_lines[0,:]**2 + b3d.moment_lines[0,:]*b3d.B_lines[0,:]
+        deposited = np.sum((b3d.epower_prof + b3d.ipower_prof)*shell_volume)
+        assert np.isfinite(deposited) and np.all(birth > 0.0)
+        data['energy_balance'] = deposited/np.sum(birth*b3d.Weight)
+        # Mean collision losses omit zero-mean kicks: allow sampling noise.
+        tols['energy_balance'] = 3.0
     if run_name in ['ORBITS_slowz','ORBITS_slowzr','ORBITS_slowzfo']:
         # Identical H markers at 55 keV in a uniform H+C plasma (ORBITS_slowzr:
         # 20 keV, and a different mix near the axis, away from the markers;

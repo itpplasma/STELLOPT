@@ -686,5 +686,7 @@
         "dv_mean_ratio": 1.0,
         "var_ratio": 1.0,
         "epower_ratio": 1.0
-    }
+    },
+    "ORBITS_thermal": {"energy_balance": 1.0},
+    "ORBITS_thermalfo": {"energy_balance": 1.0}
 }

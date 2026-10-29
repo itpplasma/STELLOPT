@@ -131,9 +131,10 @@ if __name__=="__main__":
         data['epower_total']=np.sum(b3d.epower_prof[0,:])*1.0E20 # factor to make values visible in output.
         data['ipower_total']=np.sum(b3d.ipower_prof[0,:])*1.0E20
         tols['ipower_total'] = 15.0
-    if run_name in ['ORBITS_slowz','ORBITS_slowzr']:
+    if run_name in ['ORBITS_slowz','ORBITS_slowzr','ORBITS_slowzfo']:
         # Identical H markers at 55 keV in a uniform H+C plasma (ORBITS_slowzr:
-        # 20 keV, and a different mix near the axis, away from the markers). The mean and
+        # 20 keV, and a different mix near the axis, away from the markers;
+        # ORBITS_slowzfo: full orbits, denser plasma). The mean and
         # variance of the speed must follow the Fokker-Planck operator for
         # Maxwellian electrons and ions (Rosenbluth potentials, as in Helander
         # and Sigmar ch. 3) with NRL Coulomb logarithms, to second order:
@@ -141,8 +142,10 @@ if __name__=="__main__":
         from math import erf
         ec = 1.602176634E-19; me = 9.1093837139E-31; eps0 = 8.8541878128E-12
         cl = 2.99792458E8; mp = 1.672621898E-27
-        ne, te, ti = 5.0E19, 3.0E3, 1.5E3
-        ni, zi, mi = [4.34E19, 1.10E18], [1, 6], [1.6735328380E-27, 1.9926468799E-26]
+        # ORBITS_slowzfo: ten times the density over a tenth of the time
+        dens = 10.0 if run_name == 'ORBITS_slowzfo' else 1.0
+        ne, te, ti = 5.0E19*dens, 3.0E3, 1.5E3
+        ni, zi, mi = [4.34E19*dens, 1.10E18*dens], [1, 6], [1.6735328380E-27, 1.9926468799E-26]
         mb = b3d.mass[0]
         lne = 24.0 - np.log(np.sqrt(ne*1.0E-6)/te)
         def coefs(v, nspec=3):

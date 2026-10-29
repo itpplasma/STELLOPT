@@ -33,6 +33,7 @@ test_beams3d:
 	$(MAKE) test_beams3d_slow
 	$(MAKE) test_beams3d_slowz
 	$(MAKE) test_beams3d_slowzr
+	$(MAKE) test_beams3d_slowzfo
 	@if [ -n "$(ADASDIR)" ]; then \
 		if [ -d $(ADASDIR) ]; then \
 			$(MAKE) test_beams3d_depo_adas;\
@@ -45,7 +46,6 @@ test_beams3d:
 	$(MAKE) test_beams3d_multiion
 	$(MAKE) test_beams3d_fullorbit
 	$(MAKE) test_beams3d_fullorbit_rkh68
-	$(MAKE) test_beams3d_fullorbit_coll
 	@echo "Tesing of BEAMS3D complete"
 	@echo ""
 
@@ -231,6 +231,13 @@ test_beams3d_slowzr:
 	@cd $(BEAMS3D_TEST_DIR); ./compare.py --file ORBITS_slowzr
 	@echo ""
 
+test_beams3d_slowzfo:
+	@cd $(BEAMS3D_TEST_DIR); rm -f *.h5 *.txt;
+	@echo $(MPI_RUN) $(MPI_RUN_OPTS_SM) $(MYHOME)/xbeams3d -vmec ORBITS_slowzfo -plasma -collisions
+	@cd $(BEAMS3D_TEST_DIR); $(MPI_RUN) $(MPI_RUN_OPTS_SM) $(MYHOME)/xbeams3d -vmec ORBITS_slowzfo -plasma -collisions
+	@cd $(BEAMS3D_TEST_DIR); ./compare.py --file ORBITS_slowzfo
+	@echo ""
+
 test_beams3d_depo:
 	@cd $(BEAMS3D_TEST_DIR); rm -f *.h5 *.txt; 
 	@echo $(MPI_RUN) $(MPI_RUN_OPTS_SM) $(MYHOME)/xbeams3d -vmec ORBITS_depo -plasma -depo -suzuki -nobeamdensity
@@ -295,13 +302,6 @@ test_beams3d_fullorbit_rkh68:
 	@echo $(MPI_RUN) $(MPI_RUN_OPTS_SM) $(MYHOME)/xbeams3d -vmec ORBITS_fullorbit_rkh68 -plasma
 	@cd $(BEAMS3D_TEST_DIR); $(MPI_RUN) $(MPI_RUN_OPTS_SM) $(MYHOME)/xbeams3d -vmec ORBITS_fullorbit_rkh68 -plasma
 	@cd $(BEAMS3D_TEST_DIR); ./compare_energy.py --file ORBITS_fullorbit_rkh68 --tol 1.0E-6
-	@echo ""
-
-test_beams3d_fullorbit_coll:
-	@cd $(BEAMS3D_TEST_DIR); rm -f *.h5 *.txt;
-	@echo $(MPI_RUN) $(MPI_RUN_OPTS_SM) $(MYHOME)/xbeams3d -vmec ORBITS_fullorbit_coll -plasma -collisions
-	@cd $(BEAMS3D_TEST_DIR); $(MPI_RUN) $(MPI_RUN_OPTS_SM) $(MYHOME)/xbeams3d -vmec ORBITS_fullorbit_coll -plasma -collisions
-	@cd $(BEAMS3D_TEST_DIR); ./compare_energy.py --file ORBITS_fullorbit_coll --tol 5.0E-4
 	@echo ""
 
 test_fieldlines_full:

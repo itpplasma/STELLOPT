@@ -674,10 +674,12 @@
     },
     "ORBITS_slowz": {
         "dv_mean_ratio": 1.0,
-        "var_ratio": 1.0
+        "var_ratio": 1.0,
+        "epower_ratio": 1.0
     },
     "ORBITS_slowzr": {
         "dv_mean_ratio": 1.0,
-        "var_ratio": 1.0
+        "var_ratio": 1.0,
+        "epower_ratio": 1.0
     }
 }

@@ -264,6 +264,41 @@ MODULE beams3d_physics_mod
       END FUNCTION coll_op_nubeam
 
       !-----------------------------------------------------------------
+      !     Subroutine:    collision_speed_step
+      !     Description:   Euler-Maruyama step of the speed over dt with
+      !                    drag and energy diffusion (Ito). de_e and de_i
+      !                    are the mean energies [J] given to electrons
+      !                    and ions over the step.
+      !   https://doi.org/10.1103/PhysRev.107.1
+      !   https://doi.org/10.1063/1.1694943
+      !   https://doi.org/10.1016/0021-9991(81)90111-X
+      !   https://doi.org/10.1016/j.cpc.2014.01.014
+      !-----------------------------------------------------------------
+      SUBROUTINE collision_speed_step(speed,te_in,ti_in,tau_spit_inv,vc3_tauinv,reduction,de_e,de_i)
+         IMPLICIT NONE
+         DOUBLE PRECISION, INTENT(in)  :: speed, te_in, ti_in, tau_spit_inv, vc3_tauinv
+         DOUBLE PRECISION, INTENT(out) :: reduction, de_e, de_i
+         DOUBLE PRECISION :: inv_mymass, speed3inv, speed2inv, ddve, ddvi, &
+                             zeta, sigma, dve, dvi
+         inv_mymass = one/mymass
+         speed3inv = 1.0/(speed*speed*speed)
+         speed2inv = speed*speed3inv
+         ! Variance of the speed change from electrons and from ions
+         ddve=ABS(2*e_charge*dt*te_in*inv_mymass*tau_spit_inv)
+         ddvi=ABS(2*e_charge*dt*ti_in*vc3_tauinv*inv_mymass*speed3inv)
+         CALL gauss_rand(1,zeta)  ! A random from a standard normal (1,1)
+         sigma = sqrt( ddve+ddvi) ! The standard deviation.
+         ! Drag rates [m/s^2]
+         dve   = ( 1.0 - 2.0*te_in*inv_mymass*e_charge*speed2inv)*speed*tau_spit_inv
+         dvi   = ( 1.0 +     ti_in*inv_mymass*e_charge*speed2inv)*vc3_tauinv/(speed*speed)
+         reduction = (dve + dvi)*dt+sigma*zeta
+         ! Mean energy loss m*v*r - m*r**2/2 per species for the speed loss r;
+         ! booking the zero-mean kick as well would only add noise.
+         de_e = mymass*(speed*dve*dt - half*ddve)
+         de_i = mymass*(speed*dvi*dt - half*ddvi)
+      END SUBROUTINE collision_speed_step
+
+      !-----------------------------------------------------------------
       !     Function:      beams3d_physics_gc
       !     Authors:       S. Lazerson (lazerson@pppl.gov)
       !                    M. McMillan (matthew.mcmillan@my.wheaton.edu)
@@ -290,12 +325,12 @@ MODULE beams3d_physics_mod
          INTEGER        :: ier
          DOUBLE PRECISION    :: r_temp, phi_temp, z_temp, vll, te_temp, ne_temp, ti_temp, speed, newspeed, &
                           zeta, sigma, zeta_mean, zeta_o, v_s, tau_inv, tau_spit_inv, &
-                          reduction, dve,dvi,ddve,ddvi, tau_spit, v_crit, coulomb_log, te_cube, &
+                          reduction, de_e, de_i, tau_spit, v_crit, coulomb_log, te_cube, &
                           inv_mymass, speed_cube, vcrit_cube, vfrac, modb, bphi_temp, s_temp, &
                           rho_temp, omeg_temp, binv, vrot_para, vrot_perp, &
                           vc3_tauinv, vbeta, zeff_temp,&
                           sm,omega2,vrel2,bmax,bmincl,bminqu,bmin,&
-                          zdelth,zrang, factor_ion, factor_electron, speed3inv, speed2inv
+                          zdelth,zrang
          DOUBLE PRECISION :: Ebench  ! for ASCOT Benchmark
          DOUBLE PRECISION :: slow_par(3), ni_temp(NION)
          ! For splines
@@ -415,51 +450,23 @@ MODULE beams3d_physics_mod
                RETURN
             END IF
 
-            !------------------------------------------------------------
-            !  Velocity diffusion 
-            !   https://doi.org/10.1103/PhysRev.107.1
-            !   https://doi.org/10.1063/1.1694943
-            !   https://doi.org/10.1016/0021-9991(81)90111-X
-            !   https://doi.org/10.1016/j.cpc.2014.01.014
-            !     speed3inv    v**-3 [m^3/s^3]
-            !     speed2inv    v**-2 [m^3/s^3]
-            !     ddve
-            !------------------------------------------------------------
-            speed3inv = 1.0/(speed*speed*speed)
-            speed2inv = speed*speed3inv
-            ddve=ABS(2*e_charge*dt*te_temp*inv_mymass*tau_spit_inv)
-            ddvi=ABS(2*e_charge*dt*ti_temp*vcrit_cube*inv_mymass*speed3inv*tau_spit_inv)
-            CALL gauss_rand(1,zeta)  ! A random from a standard normal (1,1)
-            sigma = sqrt( ddve+ddvi) ! The standard deviation.
-            ddve=zeta*ddve/sigma
-            ddvi=zeta*ddvi/sigma
-            factor_electron = ( 1.0 - 2.0*te_temp*inv_mymass*e_charge*speed2inv)
-            factor_ion      = ( 1.0 +     ti_temp*inv_mymass*e_charge*speed2inv)
             !-----------------------------------------------------------
-            !  Viscouse Velocity Reduction
-            !     dve       Speed change due to electron slowing down 
-            !     dvi       Speed change due to ion slowing down 
-            !     reduction Total change in speed
+            !  Drag and energy diffusion
+            !     reduction Speed loss over dt
+            !     de_e      Energy given to electrons over dt
+            !     de_i      Energy given to ions over dt
             !     newspeed  New total speed
-            !     vfrac     Ratio between new and old speed (helper) 
+            !     vfrac     Ratio between new and old speed (helper)
             !-----------------------------------------------------------
-            dve   = factor_electron*speed*tau_spit_inv
-            dvi   = factor_ion*vc3_tauinv/(speed*speed)
-            reduction = (dve + dvi)*dt+sigma*zeta
-            newspeed = speed - reduction                
-            dve=dve+ddve
-            dvi=dvi+ddvi
+            CALL collision_speed_step(speed,te_temp,ti_temp,tau_spit_inv,vc3_tauinv,reduction,de_e,de_i)
+            newspeed = speed - reduction
             vfrac = newspeed/speed
             !-----------------------------------------------------------
             !  Thermalize particle or adjust vll and moment
             !  Fowler et al. NF 1990 30 (6) 997--1010
             !-----------------------------------------------------------
             IF (newspeed < v_s) THEN  ! Thermalize
-               dve       = dve/reduction
-               dvi       = dvi/reduction
                reduction = (speed - v_s)/dt  ! Thermalize
-               dve       = dve*reduction
-               dvi       = dvi*reduction
                newspeed = speed - reduction*dt
                ltherm = .true.
                vfrac = newspeed/speed
@@ -469,8 +476,8 @@ MODULE beams3d_physics_mod
                RETURN
             END IF           
             l = MAX(MIN(CEILING(rho_temp*h1_prof),ns_prof1),1)
-            epower_prof(mybeam,l) = epower_prof(mybeam,l) + mymass*dve*dt*speed*weight(myline)
-            ipower_prof(mybeam,l) = ipower_prof(mybeam,l) + mymass*dvi*dt*speed*weight(myline)
+            epower_prof(mybeam,l) = epower_prof(mybeam,l) + de_e*weight(myline)
+            ipower_prof(mybeam,l) = ipower_prof(mybeam,l) + de_i*weight(myline)
             vll = vfrac*vll
             moment = vfrac*vfrac*moment
             speed = newspeed

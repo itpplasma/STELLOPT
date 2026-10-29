@@ -187,9 +187,7 @@
          IF (lmgrid) WRITE(6,'(A)')    '   MGRID: ' // TRIM(mgrid_string)
          IF (lmumat) WRITE(6,'(A)')    '   MUMAT: ' // TRIM(mumat_string)
          IF (.not.lgcsim) WRITE(6,'(A)') '   FULL ORIBT SIMULATION!'
-#if defined(B3D_COLLOP_NRL19IE)
-         IF (lcollision) WRITE(6,'(A)') '   NRL2019IE COLLISION OPERATOR ON!'
-#elif defined(B3D_COLLOP_NUBEAM)
+#if defined(B3D_COLLOP_NUBEAM)
          IF (lcollision) WRITE(6,'(A)') '   NUBEAM COLLISION OPERATOR ON!'
 #else
          IF (lcollision) WRITE(6,'(A)') '   NRL2019 COLLISION OPERATOR ON!'

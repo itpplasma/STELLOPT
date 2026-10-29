@@ -161,38 +161,6 @@ MODULE beams3d_physics_mod
       END FUNCTION coll_op_nrl19
 
       !-----------------------------------------------------------------
-      !     Function:      coll_op_nrl19_ie
-      !     Authors:       D. Kulla (david.kulla@ipp.mpg.de)
-      !     Date:          07/05/2023
-      !     Description:   Slowing down calc using
-      !                    Coulomb log as defined in NRL 2019 for ions
-      !                    Coulomb log as defined in NRL 2019 for electrons
-      !-----------------------------------------------------------------
-      FUNCTION coll_op_nrl19_ie(ne_in,te_in,vbeta_in,Zeff_in)  result(slow_par)
-         !--------------------------------------------------------------
-         !     Input Parameters
-         !          ne_in        Electron Density [m^-3]
-         !          te_in        Electron Temperature [eV]
-         !          vbeta_in     Normalized Particle Velocity [c]
-         !          Zeff_in      Plasma effective charge [arb]
-         !     Output Parameters
-         !          slow_par(1)  Critical velocity vcrit [m/s]    
-         !          slow_par(2)  Spitzer time tau_spit [s]    
-         !          slow_par(3)  Pitch angle scattering factor [arb]  
-         !--------------------------------------------------------------
-         IMPLICIT NONE
-         DOUBLE PRECISION :: slow_par(3)
-         DOUBLE PRECISION, INTENT(in) :: ne_in, te_in, vbeta_in, Zeff_in
-         DOUBLE PRECISION :: ne_cm, coulomb_loge, coulomb_logi
-         coulomb_logi = COULOMB_LOG_NRL_COUNTERSTREAM(ne_in,te_in,vbeta_in,Zeff_in)
-         coulomb_loge = log(1.09d11 * te_in/Zeff_in/sqrt(ne_cm))
-         slow_par(1) = V_CRITICAL_WEILAND(te_in,coulomb_logi,coulomb_loge)
-         slow_par(2) = TAU_SPITZER(mymass,ne_in,te_in,myZ,coulomb_loge)
-         slow_par(3) = Zeff_in*fact_pa  
-         RETURN
-      END FUNCTION coll_op_nrl19_ie
-
-      !-----------------------------------------------------------------
       !     Function:      coll_op_nubeam
       !     Authors:       D. Kulla (david.kulla@ipp.mpg.de)
       !     Date:          07/05/2023
@@ -406,9 +374,7 @@ MODULE beams3d_physics_mod
             !     te in eV and ne in cm^-3
             !-----------------------------------------------------------
             IF ((te_temp > te_col_min).and.(ne_temp > 0)) THEN
-#if defined(B3D_COLLOP_NRL19IE)
-               slow_par = coll_op_nrl19_ie(ne_temp,te_temp,vbeta,Zeff_temp)
-#elif defined(B3D_COLLOP_NUBEAM)
+#if defined(B3D_COLLOP_NUBEAM)
                slow_par = coll_op_nubeam(ne_temp,ni_temp,te_temp,ti_temp,vbeta,Zeff_temp,modb,speed)
 #else
                slow_par = coll_op_nrl19(ne_temp,te_temp,vbeta,Zeff_temp)
@@ -675,9 +641,7 @@ MODULE beams3d_physics_mod
             !     te in eV and ne in cm^-3
             !-----------------------------------------------------------
             IF ((te_temp > te_col_min).and.(ne_temp > 0)) THEN
-#if defined(B3D_COLLOP_NRL19IE)
-               slow_par = coll_op_nrl19_ie(ne_temp,te_temp,vbeta,Zeff_temp)
-#elif defined(B3D_COLLOP_NUBEAM)
+#if defined(B3D_COLLOP_NUBEAM)
                slow_par = coll_op_nubeam(ne_temp,ni_temp,te_temp,ti_temp,vbeta,Zeff_temp,modb,speed)
 #else
                slow_par = coll_op_nrl19(ne_temp,te_temp,vbeta,Zeff_temp)

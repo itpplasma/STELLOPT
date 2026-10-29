@@ -145,13 +145,13 @@ if __name__=="__main__":
         ni, zi, mi = [4.34E19, 1.10E18], [1, 6], [1.6735328380E-27, 1.9926468799E-26]
         mb = b3d.mass[0]
         lne = 24.0 - np.log(np.sqrt(ne*1.0E-6)/te)
-        def coefs(v):
+        def coefs(v, nspec=3):
             spec = [(me, 1, ne, te, lne)]
             for n, z, m in zip(ni, zi, mi):
                 lni = 43.0 - np.log(z*(mb+m)/(mb*m)*mp*np.sqrt(ne*1.0E-6/te)/(v/cl)**2)
                 spec.append((m, z, n, ti, lni))
             K = D = 0.0
-            for m, z, n, t, lnl in spec:
+            for m, z, n, t, lnl in spec[:nspec]:
                 c = n*ec**4*z*z*lnl/(4*np.pi*eps0**2)
                 vt = np.sqrt(2*t*ec/m); x = v/vt
                 mu0 = (erf(x) - 2*x*np.exp(-x*x)/np.sqrt(np.pi))/(x*x)
@@ -171,6 +171,17 @@ if __name__=="__main__":
             y = y + h*(k1+2*k2+2*k3+k4)/6
         data['dv_mean_ratio'] = (v[0,0]-np.mean(v[-1,:]))/(v[0,0]-y[0])
         data['var_ratio'] = np.var(v[-1,:], ddof=1)/y[1]
+        # The electron power profile must hold the mean energy the markers
+        # give to electrons, -(m v K_e + m D_e), along their speeds. Weighting
+        # by rho restores the volume element (dV/ds is nearly constant here).
+        tt = np.linspace(0.0, b3d.t_end[0], v.shape[0])
+        vg = np.linspace(np.min(v), np.max(v), 64)
+        pg = [-(mb*x*K + mb*D) for x in vg for K, D in [coefs(x, 1)]]
+        pt = np.mean(np.interp(v, vg, pg), axis=1)
+        p_e = np.sum(0.5*(pt[1:]+pt[:-1])*np.diff(tt))/tt[-1]
+        rho = (np.arange(b3d.dense_prof.shape[1])+0.5)/b3d.dense_prof.shape[1]
+        data['epower_ratio'] = np.sum(b3d.epower_prof*rho)/np.sum(b3d.dense_prof*rho)/p_e
+        tols['epower_ratio'] = 2.0
         # Sampling error of the variance is sqrt(2/(N-1)), 2.2 % for N = 4096.
         failtol = 10.0
     if run_name in ['ORBITS_depo','ORBITS_depo_adas','ORBITS_eqdsk','ORBITS_multiion']:

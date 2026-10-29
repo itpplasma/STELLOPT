@@ -125,30 +125,46 @@ if __name__=="__main__":
         data['epower']=(b3d.epower_prof[0,:].flatten()*1.0E20).tolist() # factor to make values visible in output.
         data['ipower']=(b3d.ipower_prof[0,:].flatten()*1.0E20).tolist()
     if run_name in ['ORBITS_slowz']:
-        # Speed loss in a uniform H+C plasma against the Stix slowing-down
-        # law with separate electron and ion Coulomb logarithms and [Z].
+        # Identical H markers at 55 keV in a uniform H+C plasma. The mean and
+        # variance of the speed must follow the Fokker-Planck operator for
+        # Maxwellian electrons and ions (Rosenbluth potentials, as in Helander
+        # and Sigmar ch. 3) with NRL Coulomb logarithms, to second order:
+        # dm/dt = K + K''V/2, dV/dt = 2K'V + 2D, with K = Q + D' + 2D/v.
+        from math import erf
         ec = 1.602176634E-19; me = 9.1093837139E-31; eps0 = 8.8541878128E-12
         cl = 2.99792458E8; mp = 1.672621898E-27
-        ne, te, ni, zi, mi = 5.0E19, 3.0E3, [4.34E19, 1.10E18], [1, 6], [1.6735328380E-27, 1.9926468799E-26]
+        ne, te, ti = 5.0E19, 3.0E3, 1.5E3
+        ni, zi, mi = [4.34E19, 1.10E18], [1, 6], [1.6735328380E-27, 1.9926468799E-26]
         mb = b3d.mass[0]
         lne = 24.0 - np.log(np.sqrt(ne*1.0E-6)/te)
-        taus = 3*(2*np.pi)**1.5*eps0**2*mb*(te*ec)**1.5/(ne*ec**4*np.sqrt(me)*lne)
-        vte3 = (2*te*ec/me)**1.5
-        def dvdt(v):
-            lni = [43.0 - np.log(z*(mb+m)/(mb*m)*mp*np.sqrt(ne*1.0E-6/te)/(v/cl)**2) for z, m in zip(zi, mi)]
-            zsum = sum(n*z*z/m*l for n, z, m, l in zip(ni, zi, mi, lni))
-            vc3 = 0.75*np.sqrt(np.pi)*vte3*me*zsum/(ne*lne)
-            return -(v/taus)*(1.0 + vc3/v**3)
+        def coefs(v):
+            spec = [(me, 1, ne, te, lne)]
+            for n, z, m in zip(ni, zi, mi):
+                lni = 43.0 - np.log(z*(mb+m)/(mb*m)*mp*np.sqrt(ne*1.0E-6/te)/(v/cl)**2)
+                spec.append((m, z, n, ti, lni))
+            K = D = 0.0
+            for m, z, n, t, lnl in spec:
+                c = n*ec**4*z*z*lnl/(4*np.pi*eps0**2)
+                vt = np.sqrt(2*t*ec/m); x = v/vt
+                mu0 = (erf(x) - 2*x*np.exp(-x*x)/np.sqrt(np.pi))/(x*x)
+                dmu0 = 4*np.exp(-x*x)/np.sqrt(np.pi) - 2*mu0/x
+                Db = c*mu0/(2*mb*mb*v)
+                K += -c*mu0/(mb*m*vt*vt) + c*(dmu0/vt - mu0/v)/(2*mb*mb*v) + 2*Db/v
+                D += Db
+            return K, D
+        def rhs(y):
+            h = 1.0E-4*y[0]
+            K, D = coefs(y[0]); Kp = coefs(y[0]+h)[0]; Km = coefs(y[0]-h)[0]
+            return np.array([K + 0.25*(Kp-2*K+Km)/(h*h)*y[1], (Kp-Km)/h*y[1] + 2*D])
         v = np.sqrt(b3d.vll_lines**2 + 2*b3d.moment_lines*b3d.B_lines/mb)
-        nstep = 2000; h = b3d.t_end[0]/nstep
-        dv_stix = []
-        for v0 in v[0,:]:
-            u = v0
-            for _ in range(nstep):
-                k1 = dvdt(u); k2 = dvdt(u+0.5*h*k1); k3 = dvdt(u+0.5*h*k2); k4 = dvdt(u+h*k3)
-                u += h*(k1+2*k2+2*k3+k4)/6
-            dv_stix.append(v0-u)
-        data['dv_ratio'] = ((v[0,:]-v[-1,:])/np.array(dv_stix)).tolist()
+        y = np.array([v[0,0], 0.0]); nstep = 200; h = b3d.t_end[0]/nstep
+        for _ in range(nstep):
+            k1 = rhs(y); k2 = rhs(y+0.5*h*k1); k3 = rhs(y+0.5*h*k2); k4 = rhs(y+h*k3)
+            y = y + h*(k1+2*k2+2*k3+k4)/6
+        data['dv_mean_ratio'] = (v[0,0]-np.mean(v[-1,:]))/(v[0,0]-y[0])
+        data['var_ratio'] = np.var(v[-1,:], ddof=1)/y[1]
+        # Sampling error of the variance is sqrt(2/(N-1)), 2.2 % for N = 4096.
+        failtol = 10.0
     if run_name in ['ORBITS_depo','ORBITS_depo_adas','ORBITS_eqdsk','ORBITS_multiion']:
         data['Shinethrough'] = b3d.Shinethrough.flatten().tolist()
         [rho,depo]= b3d.calcDepo(ns=16)

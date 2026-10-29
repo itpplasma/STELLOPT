@@ -1,3 +1,16 @@
+# Experimental ITP fork of STELLOPT
+
+This is an experimental fork of STELLOPT, maintained by the Institute of Theoretical and Computational Physics (ITP), TU Graz.
+It carries fixes and extensions that are not in [upstream STELLOPT](https://github.com/PrincetonUniversity/STELLOPT) and is not supported by the upstream developers.
+Use it at your own risk; results may differ from upstream releases.
+Report problems with this fork here, not upstream.
+
+Main differences to upstream `develop`:
+
+* BEAMS3D: VMEC grid construction made deterministic, integer grid indices, VMEC splines extended outside the LCFS, collocated boundary events recorded, shared wall candidates pooled to bound MPI window contexts.
+* VMEC: axis geometry preserved while enforcing regularity, lambda normalization preserved across restarts.
+* Build: failures propagated from `build_all`, MPI declarations compiled in serial builds, serial magnetic-material build paths restored, BEAMS physics dependency on the wall module tracked.
+
 # INSTALLATION
 This version of STELLOPT makes use of `make_***.inc` files in the `SHARE`
 subdirectory to set various options at compile time.  The `make.inc` file

@@ -215,6 +215,9 @@ test_beams3d_slow:
 	@echo $(MPI_RUN) $(MPI_RUN_OPTS_SM) $(MYHOME)/xbeams3d -vmec ORBITS_slow -plasma -collisions
 	@cd $(BEAMS3D_TEST_DIR); $(MPI_RUN) $(MPI_RUN_OPTS_SM) $(MYHOME)/xbeams3d -vmec ORBITS_slow -plasma -collisions
 	@cd $(BEAMS3D_TEST_DIR); ./compare.py --file ORBITS_slow
+	@cd $(BEAMS3D_TEST_DIR); ln -sf wout_ORBITS.nc wout_ORBITS_thermal.nc
+	@cd $(BEAMS3D_TEST_DIR); $(MPI_RUN) $(MPI_RUN_OPTS_SM) $(MYHOME)/xbeams3d -vmec ORBITS_thermal -plasma -collisions
+	@cd $(BEAMS3D_TEST_DIR); ./compare.py --file ORBITS_thermal
 	@echo ""
 
 test_beams3d_slowz:
@@ -236,6 +239,9 @@ test_beams3d_slowzfo:
 	@echo $(MPI_RUN) $(MPI_RUN_OPTS_SM) $(MYHOME)/xbeams3d -vmec ORBITS_slowzfo -plasma -collisions
 	@cd $(BEAMS3D_TEST_DIR); $(MPI_RUN) $(MPI_RUN_OPTS_SM) $(MYHOME)/xbeams3d -vmec ORBITS_slowzfo -plasma -collisions
 	@cd $(BEAMS3D_TEST_DIR); ./compare.py --file ORBITS_slowzfo
+	@cd $(BEAMS3D_TEST_DIR); ln -sf wout_ORBITS.nc wout_ORBITS_thermalfo.nc
+	@cd $(BEAMS3D_TEST_DIR); $(MPI_RUN) $(MPI_RUN_OPTS_SM) $(MYHOME)/xbeams3d -vmec ORBITS_thermalfo -plasma -collisions
+	@cd $(BEAMS3D_TEST_DIR); ./compare.py --file ORBITS_thermalfo
 	@echo ""
 
 test_beams3d_depo:

@@ -466,6 +466,10 @@ MODULE beams3d_physics_mod
             !  Fowler et al. NF 1990 30 (6) 997--1010
             !-----------------------------------------------------------
             IF (newspeed < v_s) THEN  ! Thermalize
+               ! Bulk-ion closure at thermalisation (doi:10.1017/S0022377820001087).
+               ! Include the unbooked final step as well as the residual energy.
+               l = MAX(MIN(CEILING(rho_temp*h1_prof),ns_prof1),1)
+               ipower_prof(mybeam,l) = ipower_prof(mybeam,l) + half*mymass*speed*speed*weight(myline)
                reduction = (speed - v_s)/dt  ! Thermalize
                newspeed = speed - reduction*dt
                ltherm = .true.
@@ -709,6 +713,10 @@ MODULE beams3d_physics_mod
             !  Fowler et al. NF 1990 30 (6) 997--1010
             !-----------------------------------------------------------
             IF (newspeed < v_s) THEN  ! Thermalize
+               ! Bulk-ion closure at thermalisation (doi:10.1017/S0022377820001087).
+               ! Include the unbooked final step as well as the residual energy.
+               l = MAX(MIN(CEILING(rho_temp*h1_prof),ns_prof1),1)
+               ipower_prof(mybeam,l) = ipower_prof(mybeam,l) + half*mymass*speed*speed*weight(myline)
                reduction = (speed - v_s)/dt  ! Thermalize
                newspeed = speed - reduction*dt
                ltherm = .true.

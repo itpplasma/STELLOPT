@@ -557,7 +557,7 @@ MODULE beams3d_physics_mod
          INTEGER        :: ier
          DOUBLE PRECISION    :: r_temp, phi_temp, z_temp, vll, te_temp, ne_temp, ti_temp, speed, newspeed, &
                           zeta, sigma, zeta_mean, zeta_o, v_s, tau_inv, tau_spit_inv, &
-                          reduction, dve,dvi, tau_spit, v_crit, coulomb_log, te_cube, &
+                          reduction, de_e, de_i, tau_spit, v_crit, coulomb_log, te_cube, &
                           inv_mymass, speed_cube, vcrit_cube, vfrac, modb, s_temp, &
                           rho_temp, omeg_temp,&
                           vc3_tauinv, vbeta, zeff_temp, br_temp, bphi_temp, bz_temp, vperp, &
@@ -693,19 +693,15 @@ MODULE beams3d_physics_mod
             END IF
 
             !-----------------------------------------------------------
-            !  Viscouse Velocity Reduction
-            !     v_s       Local Sound Speed
-            !     speed     Total particle speed
-            !     dve       Speed change due to electron slowing down 
-            !     dvi       Speed change due to ion slowing down 
-            !     reduction Total change in speed
+            !  Drag and energy diffusion, as for gyrocenters
+            !     reduction Speed loss over dt
+            !     de_e      Energy given to electrons over dt
+            !     de_i      Energy given to ions over dt
             !     newspeed  New total speed
-            !     vfrac     Ratio between new and old speed (helper) 
+            !     vfrac     Ratio between new and old speed (helper)
             !-----------------------------------------------------------
-            dve   = speed*tau_spit_inv
-            dvi   = vc3_tauinv/(speed*speed)
-            reduction = dve + dvi
-            newspeed = speed - reduction*dt
+            CALL collision_speed_step(speed,te_temp,ti_temp,tau_spit_inv,vc3_tauinv,reduction,de_e,de_i)
+            newspeed = speed - reduction
             vfrac = newspeed/speed
 
             !-----------------------------------------------------------
@@ -713,11 +709,7 @@ MODULE beams3d_physics_mod
             !  Fowler et al. NF 1990 30 (6) 997--1010
             !-----------------------------------------------------------
             IF (newspeed < v_s) THEN  ! Thermalize
-               dve       = dve/reduction
-               dvi       = dvi/reduction
                reduction = (speed - v_s)/dt  ! Thermalize
-               dve       = dve*reduction
-               dvi       = dvi*reduction
                newspeed = speed - reduction*dt
                ltherm = .true.
                vfrac = newspeed/speed
@@ -730,8 +722,8 @@ MODULE beams3d_physics_mod
                RETURN
             END IF
             l = MAX(MIN(CEILING(rho_temp*h1_prof),ns_prof1),1)
-            epower_prof(mybeam,l) = epower_prof(mybeam,l) + mymass*dve*dt*speed*weight(myline)
-            ipower_prof(mybeam,l) = ipower_prof(mybeam,l) + mymass*dvi*dt*speed*weight(myline)
+            epower_prof(mybeam,l) = epower_prof(mybeam,l) + de_e*weight(myline)
+            ipower_prof(mybeam,l) = ipower_prof(mybeam,l) + de_i*weight(myline)
             vll = vfrac*vll
             q(4:6) = q(4:6)*vfrac
             speed = newspeed

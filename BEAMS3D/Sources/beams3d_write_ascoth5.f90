@@ -33,7 +33,8 @@
                                     lcollision, pi, pi2, t_end_in, nprocs_beams, &
                                     div_beams, mass_beams, Zatom_beams, dex_beams, &
                                     qid_str_saved, lascotfl, R_beams, PHI_beams, Z_beams, &
-                                    NI_AUX_Z, NI_AUX_M
+                                    NI_AUX_Z, NI_AUX_M, lgc2fo_start, &
+                                    R_start, PHI_start, Z_start, vr_start, vphi_start, vz_start
       USE safe_open_mod, ONLY: safe_open
       USE wall_mod, ONLY: nface,nvertex,face,vertex,ihit_array, wall_free, machine_string
       USE beams3d_write_par
@@ -60,6 +61,11 @@
       DOUBLE PRECISION, ALLOCATABLE :: rtemp(:,:,:), r1dtemp(:)
       CHARACTER(LEN=10) ::  qid_str
       CHARACTER(LEN=8) :: temp_str8, inj_str8
+      CHARACTER(LEN=4) :: marker_type
+      CHARACTER(LEN=32) :: marker_path
+      LOGICAL :: physical_birth
+      DOUBLE PRECISION :: phase_rotation
+      DOUBLE PRECISION, PARAMETER :: degrees_per_radian = 180.0_rprec/ACOS(-1.0_rprec)
 
 
       !DOUBLE PRECISION, PARAMETER :: e_charge      = 1.60217662E-19 !e_c
@@ -608,6 +614,11 @@
             END IF
 
          CASE('MARKER')
+            ! Particle markers preserve the ionisation point and neutral velocity.
+            physical_birth = .TRUE.
+            IF (.not.lbeam) physical_birth = ALL(.not.lgc2fo_start)
+            marker_type = 'gc_'
+            IF (physical_birth) marker_type = 'prt_'
             ! For now we assume we will only run this in deposition mode
             ! so that means we look at index (1,i) since
             !    0: starting point
@@ -635,7 +646,7 @@
                CALL RANDOM_NUMBER(qid_flt)
                WRITE(qid_str,'(i10.10)') FLOOR(qid_flt*1.0E9)
                CALL write_att_hdf5(marker_gid,'active',qid_str,ier)
-               CALL h5gcreate_f(marker_gid,'gc_'//qid_str, qid_gid, ier)
+               CALL h5gcreate_f(marker_gid,TRIM(marker_type)//qid_str, qid_gid, ier)
                CALL write_var_hdf5(qid_gid,'n',ier,INTVAR=kmax)
                CALL DATE_AND_TIME(DATE=temp_str8)
                CALL write_att_hdf5(qid_gid,'date',temp_str8,ier)
@@ -670,6 +681,7 @@
                IF (ier /= 0) CALL handle_err(HDF5_CLOSE_ERR,'ascot5_'//TRIM(id_string)//'.h5',ier)
             END IF
             CALL MPI_BCAST(qid_str,10,MPI_CHARACTER,master,MPI_COMM_BEAMS,ierr_mpi)
+            marker_path = '/marker/'//TRIM(marker_type)//qid_str
             ALLOCATE(rtemp(k1:k2,13,1))
             k = k1
             DO i = d1, d2
@@ -682,7 +694,28 @@
                gammarel     = SQRT(1.0 / ( (1.0+v_total/c_speed) * (1.0-v_total/c_speed) ))
                rtemp(k,4,1) = (gammarel-1.0)*mass(i)*c_speed*c_speed/e_charge
                rtemp(k,5,1) = vll_lines(d3,i)/v_total
-               rtemp(k,6,1) = 0          ! zeta
+               rtemp(k,6,1) = 0          ! Legacy GC inputs have no physical phase.
+               IF (physical_birth) THEN
+                  IF (lbeam) THEN
+                     rtemp(k,1,1) = R_lines(1,i)
+                     rtemp(k,2,1) = PHI_lines(1,i)*degrees_per_radian
+                     rtemp(k,3,1) = Z_lines(1,i)
+                     ! Stored neutral components use the injection-point basis.
+                     phase_rotation = PHI_lines(0,i)-PHI_lines(1,i)
+                     rtemp(k,4,1) = vr_lines(1,i)*COS(phase_rotation) &
+                                      - vphi_lines(1,i)*SIN(phase_rotation)
+                     rtemp(k,5,1) = vr_lines(1,i)*SIN(phase_rotation) &
+                                      + vphi_lines(1,i)*COS(phase_rotation)
+                     rtemp(k,6,1) = vz_lines(1,i)
+                  ELSE
+                     rtemp(k,1,1) = R_start(i)
+                     rtemp(k,2,1) = PHI_start(i)*degrees_per_radian
+                     rtemp(k,3,1) = Z_start(i)
+                     rtemp(k,4,1) = vr_start(i)
+                     rtemp(k,5,1) = vphi_start(i)
+                     rtemp(k,6,1) = vz_start(i)
+                  END IF
+               END IF
                rtemp(k,7,1) = mass(i)*inv_amu ! mass
                rtemp(k,8,1) = Zatom(i)
                rtemp(k,9,1) = NINT(mass(i)*inv_amu) ! Anum
@@ -690,23 +723,36 @@
                rtemp(k,11,1) = weight(i) ! weight
                rtemp(k,12,1) = t_end(i) ! time
                rtemp(k,13,1) = k
+               IF (physical_birth) THEN
+                  rtemp(k,12,1) = 0.0_rprec
+                  IF (lbeam) rtemp(k,12,1) = time_lines(1,i)
+                  rtemp(k,13,1) = i
+               END IF
                k=k+1
             END DO
+            IF (.not.physical_birth) THEN
             WHERE(rtemp(:,4,1)==0.0) rtemp(:,5,1)=0.0 ! avoid NAN pitch angle
             WHERE(rtemp(:,1,1)<raxis(1)) rtemp(:,1,1)=raxis(1) ! avoid NAN pitch angle
-            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, '/marker/gc_'//qid_str//'/r',      DBLVAR=rtemp(:,1,1))
-            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, '/marker/gc_'//qid_str//'/phi',    DBLVAR=rtemp(:,2,1))
-            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, '/marker/gc_'//qid_str//'/z',      DBLVAR=rtemp(:,3,1))
-            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, '/marker/gc_'//qid_str//'/energy', DBLVAR=rtemp(:,4,1))
-            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, '/marker/gc_'//qid_str//'/pitch',  DBLVAR=rtemp(:,5,1))
-            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, '/marker/gc_'//qid_str//'/zeta',   DBLVAR=rtemp(:,6,1))
-            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, '/marker/gc_'//qid_str//'/mass',   DBLVAR=rtemp(:,7,1))
-            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, '/marker/gc_'//qid_str//'/charge', INTVAR=INT(rtemp(:,8,1)))
-            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, '/marker/gc_'//qid_str//'/anum',   INTVAR=INT(rtemp(:,9,1)))
-            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, '/marker/gc_'//qid_str//'/znum',   INTVAR=INT(rtemp(:,10,1)))
-            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, '/marker/gc_'//qid_str//'/weight', DBLVAR=rtemp(:,11,1))
-            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, '/marker/gc_'//qid_str//'/time',   DBLVAR=rtemp(:,12,1))
-            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, '/marker/gc_'//qid_str//'/id',     INTVAR=INT(rtemp(:,13,1)))
+            END IF
+            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, TRIM(marker_path)//'/r',      DBLVAR=rtemp(:,1,1))
+            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, TRIM(marker_path)//'/phi',    DBLVAR=rtemp(:,2,1))
+            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, TRIM(marker_path)//'/z',      DBLVAR=rtemp(:,3,1))
+            IF (physical_birth) THEN
+               CALL beams3d_write1d_parhdf5(1,kmax,k1,k2,TRIM(marker_path)//'/vr', DBLVAR=rtemp(:,4,1))
+               CALL beams3d_write1d_parhdf5(1,kmax,k1,k2,TRIM(marker_path)//'/vphi', DBLVAR=rtemp(:,5,1))
+               CALL beams3d_write1d_parhdf5(1,kmax,k1,k2,TRIM(marker_path)//'/vz', DBLVAR=rtemp(:,6,1))
+            ELSE
+            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, TRIM(marker_path)//'/energy', DBLVAR=rtemp(:,4,1))
+            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, TRIM(marker_path)//'/pitch',  DBLVAR=rtemp(:,5,1))
+            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, TRIM(marker_path)//'/zeta',   DBLVAR=rtemp(:,6,1))
+            END IF
+            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, TRIM(marker_path)//'/mass',   DBLVAR=rtemp(:,7,1))
+            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, TRIM(marker_path)//'/charge', INTVAR=INT(rtemp(:,8,1)))
+            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, TRIM(marker_path)//'/anum',   INTVAR=INT(rtemp(:,9,1)))
+            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, TRIM(marker_path)//'/znum',   INTVAR=INT(rtemp(:,10,1)))
+            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, TRIM(marker_path)//'/weight', DBLVAR=rtemp(:,11,1))
+            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, TRIM(marker_path)//'/time',   DBLVAR=rtemp(:,12,1))
+            CALL beams3d_write1d_parhdf5( 1, kmax, k1, k2, TRIM(marker_path)//'/id',     INTVAR=INT(rtemp(:,13,1)))
             DEALLOCATE(rtemp)
 
          CASE('FIELDLINES')

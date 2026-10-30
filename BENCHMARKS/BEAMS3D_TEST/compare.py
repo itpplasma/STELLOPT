@@ -24,6 +24,44 @@ if __name__=="__main__":
     args = parser.parse_args()
     run_name = args.run_name
 
+    if run_name in ['BIRTH_PHASE', 'ORBITS_depo_birth']:
+        import h5py
+        with h5py.File(f'beams3d_{run_name}.h5') as source, \
+                h5py.File(f'ascot5_{run_name}.h5') as target:
+            groups = list(target['marker'].values())
+            assert len(groups) == 1 and groups[0].name.split('/')[-1].startswith('prt_'), \
+                'Birth phase requires physical particle markers, not zero-phase GC markers'
+            markers = groups[0]
+            keep = np.asarray(source['end_state'][:]).ravel() < 3
+            beam = run_name == 'ORBITS_depo_birth'
+            phase0 = source['PHI_lines'][:, 0]
+            if beam:
+                phase = source['PHI_lines'][:, 1]
+                r, z = source['R_lines'][:, 1], source['Z_lines'][:, 1]
+            else:
+                phase = np.array([.1, .4, .8])
+                r, z = np.array([10.5, 10.4, 10.6]), np.array([0., .1, -.1])
+                phase0 = phase
+            vr = source['vr_lines'][:, 0]
+            vp = source['vphi_lines'][:, 0]
+            vz = source['vz_lines'][:, 0]
+            angle = phase0-phase
+            expected = dict(r=r, phi=np.degrees(phase), z=z,
+                            vr=vr*np.cos(angle)-vp*np.sin(angle),
+                            vphi=vr*np.sin(angle)+vp*np.cos(angle), vz=vz)
+            for key, value in expected.items():
+                np.testing.assert_allclose(markers[key][:].ravel(), value[keep],
+                                           rtol=1e-12, atol=1e-12, err_msg=key)
+            np.testing.assert_allclose(markers['weight'][:].ravel(),
+                                       source['Weight'][:].ravel()[keep], rtol=1e-12)
+            np.testing.assert_array_equal(markers['id'][:].ravel(), np.flatnonzero(keep)+1)
+            times = source['time_lines'][:, 1] if beam else np.zeros(len(keep))
+            np.testing.assert_allclose(markers['time'][:].ravel(), times[keep],
+                                       rtol=1e-12, atol=1e-15)
+            assert 'zeta' not in markers
+        print('STATUS: PASS physical birth position, velocity, phase and weights')
+        sys.exit(0)
+
     # Do nothing if no filename
     if not run_name: sys.exit(0)
     lfail = False

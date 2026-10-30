@@ -46,6 +46,7 @@ test_beams3d:
 	$(MAKE) test_beams3d_multiion
 	$(MAKE) test_beams3d_fullorbit
 	$(MAKE) test_beams3d_fullorbit_rkh68
+	$(MAKE) test_beams3d_birth_phase
 	@echo "Tesing of BEAMS3D complete"
 	@echo ""
 
@@ -181,6 +182,14 @@ test_vmec:
 	@cd $(VMEC_TEST_DIR); $(MPI_RUN) $(MPI_RUN_OPTS_SM) $(MYHOME)/xvmec2000 input.DIII-D_reset reset=wout_reset.nc
 	@cd $(VMEC_TEST_DIR) && ./compare.py --file DIII-D_reset
 	@echo "Tesing of VMEC2000 complete"
+
+test_beams3d_birth_phase:
+	@cd $(BEAMS3D_TEST_DIR); cp wout_ORBITS.nc wout_BIRTH_PHASE.nc
+	@cd $(BEAMS3D_TEST_DIR) && $(MPI_RUN) $(MPI_RUN_OPTS_SM) $(MYHOME)/xbeams3d -vmec BIRTH_PHASE -plasma -depo -ascot5
+	@cd $(BEAMS3D_TEST_DIR) && ./compare.py --file BIRTH_PHASE
+	@cd $(BEAMS3D_TEST_DIR); cp input.ORBITS_depo input.ORBITS_depo_birth; cp wout_ORBITS_depo.nc wout_ORBITS_depo_birth.nc
+	@cd $(BEAMS3D_TEST_DIR) && $(MPI_RUN) $(MPI_RUN_OPTS_SM) $(MYHOME)/xbeams3d -vmec ORBITS_depo_birth -plasma -depo -suzuki -ascot5
+	@cd $(BEAMS3D_TEST_DIR) && ./compare.py --file ORBITS_depo_birth
 
 test_beams3d_basic:
 	@cd $(BEAMS3D_TEST_DIR); rm -f *.h5 *.txt; 

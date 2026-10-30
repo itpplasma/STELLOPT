@@ -35,7 +35,7 @@ SUBROUTINE beams3d_follow
     INTEGER, ALLOCATABLE :: itemp(:,:)
     REAL :: dist
     REAL(rprec) :: tf_max, vel_max, weight_save
-    DOUBLE PRECISION :: tf_nag, t_nag
+    DOUBLE PRECISION :: tf_nag, t_nag, q_particle(6)
     DOUBLE PRECISION, ALLOCATABLE :: q(:)
 
     DOUBLE PRECISION, PARAMETER :: electron_mass = 9.10938356D-31 !m_e
@@ -196,6 +196,12 @@ SUBROUTINE beams3d_follow
        E_by_v=mymass*0.5d-3/e_charge
        mybeam = Beam(i)
        moment = mu_start(i)
+       IF (.not.lbeam .and. .not.lgc2fo_start(i) .and. rho_fullorbit >= 100) THEN
+          ! Physical particle inputs need the native field before GC following.
+          q_particle = (/q(1:3), vr_start(i), vphi_start(i), vz_start(i)/)
+          CALL beams3d_part2gc(q_particle)
+          q = q_particle(1:4)
+       END IF
        previous_vll = q(4)
        previous_moment = moment
        fact_pa   = plasma_mass/(mymass*plasma_Zmean)

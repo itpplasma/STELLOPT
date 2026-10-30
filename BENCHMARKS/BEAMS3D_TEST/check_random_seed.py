@@ -47,10 +47,7 @@ def main():
     second = run_case(source, executable, launcher, 12345)
     other = run_case(source, executable, launcher, 54321)
     assert first.keys() == second.keys()
-    # Guiding-centre markers leave these arrays uninitialised after the
-    # first point, so they hold whatever memory the allocation returned.
-    unset = {"vr_lines", "vphi_lines", "vz_lines"}
-    differ = [name for name in first if name not in unset | {"dist_prof"}
+    differ = [name for name in first if name != "dist_prof"
               and not np.array_equal(first[name], second[name])]
     # Ranks add to the shared distribution without a lock, so the order of
     # the sums, and with it the last bits, varies between runs.

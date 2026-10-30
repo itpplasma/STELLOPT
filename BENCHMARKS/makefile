@@ -31,6 +31,7 @@ test_beams3d:
 	$(MAKE) test_beams3d_loss
 	$(MAKE) test_beams3d_event_modes
 	$(MAKE) test_beams3d_slow
+	$(MAKE) test_beams3d_seed
 	$(MAKE) test_beams3d_slowz
 	$(MAKE) test_beams3d_slowzr
 	$(MAKE) test_beams3d_slowzfo
@@ -227,6 +228,12 @@ test_beams3d_slow:
 	@cd $(BEAMS3D_TEST_DIR); ln -sf wout_ORBITS.nc wout_ORBITS_thermal.nc
 	@cd $(BEAMS3D_TEST_DIR); $(MPI_RUN) $(MPI_RUN_OPTS_SM) $(MYHOME)/xbeams3d -vmec ORBITS_thermal -plasma -collisions
 	@cd $(BEAMS3D_TEST_DIR); ./compare.py --file ORBITS_thermal
+	@echo ""
+
+test_beams3d_seed:
+	@cd $(BEAMS3D_TEST_DIR); ./check_random_seed.py \
+		--executable $(MYHOME)/xbeams3d \
+		--launcher "$(MPI_RUN) $(MPI_RUN_OPTS_SM)"
 	@echo ""
 
 test_beams3d_slowz:

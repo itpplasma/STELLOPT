@@ -180,7 +180,12 @@ if __name__=="__main__":
         assert np.isfinite(deposited) and np.all(birth > 0.0)
         data['energy_balance'] = deposited/np.sum(birth*b3d.Weight)
         # Mean collision losses omit zero-mean kicks: allow sampling noise.
-        tols['energy_balance'] = 3.0
+        # ORBITS_thermalfo (4096 markers, run under test_beams3d_slowzfo)
+        # scatters by up to 3.2 % between seeds, so 3 % fails by chance:
+        # aCluster 21878619 (1.0054/0.9857/0.9751) and 21878940
+        # (0.9865/1.0001/1.0084/0.9792); the develop binary 153bcdab
+        # spreads the same way (0.9874/1.0003/1.0156, job 21878619).
+        tols['energy_balance'] = 5.0 if run_name == 'ORBITS_thermalfo' else 3.0
     if run_name in ['ORBITS_slowz','ORBITS_slowzr','ORBITS_slowzfo']:
         # Identical H markers at 55 keV in a uniform H+C plasma (ORBITS_slowzr:
         # 20 keV, and a different mix near the axis, away from the markers;

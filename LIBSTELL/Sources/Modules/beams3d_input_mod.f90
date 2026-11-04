@@ -81,6 +81,11 @@
 !                           fixes the accuracy of INT_TYPE='RKH68', which
 !                           takes a fixed step.  LSODE adapts within dt and
 !                           is governed by follow_tol instead.
+!            random_seed_in Seed for the random number generator. A value
+!                           >= 0 makes runs reproducible for the same
+!                           binary, input and MPI rank count; each rank
+!                           derives its own stream from it. The default
+!                           (-1) seeds from the operating system.
 !            plasma_mass    Mean plasma mass in [kg]
 !            Zeff           <Z> = sum(n_k*Z_k^2)/sum(n_k*Z_k)
 !            plasma_Zmean   [Z] = sum(n_k*Z_k^2*(plasma_mass/m_k))/sum(n_k*Z_k)
@@ -116,6 +121,7 @@
                                B_kick_min, B_kick_max, freq_kick, E_kick,&
                                vr_start_in, vphi_start_in, vz_start_in, &
                                rho_fullorbit, nsub_fullorbit, duplicate_factor, &
+                               random_seed_in, &
                                B_kick_min, B_kick_max, freq_kick, E_kick, &
                                rmin_fida, rmax_fida, zmin_fida, &
                                zmax_fida,phimin_fida, phimax_fida, &
@@ -239,6 +245,7 @@
       rho_fullorbit = 1.0E10 ! Default to off
       nsub_fullorbit = 8 ! Integration substeps per gyroperiod
       duplicate_factor = 1 ! No particle duplication
+      random_seed_in = -1 ! Seed from the operating system
 
       ! Distribution Function Defaults
       nrho_dist = 64
@@ -544,6 +551,7 @@
       WRITE(iunit_out,outflt) 'RHO_FULLORBIT',rho_fullorbit
       WRITE(iunit_out,outint) 'NSUB_FULLORBIT',nsub_fullorbit
       WRITE(iunit_out,outint) 'DUPLICATE_FACTOR',duplicate_factor
+      WRITE(iunit_out,outint) 'RANDOM_SEED_IN',random_seed_in
       WRITE(iunit_out,'(A)') '!---------- Distribution Parameters ------------'
       WRITE(iunit_out,outint) 'NRHO_DIST',ns_prof1
       WRITE(iunit_out,outint) 'NTHETA_DIST',ns_prof2
@@ -726,6 +734,7 @@
       CALL MPI_BCAST(rho_fullorbit,1,MPI_REAL8, local_master, comm,istat)
       CALL MPI_BCAST(nsub_fullorbit,1,MPI_INTEGER, local_master, comm,istat)
       CALL MPI_BCAST(duplicate_factor,1,MPI_INTEGER, local_master, comm,istat)
+      CALL MPI_BCAST(random_seed_in,1,MPI_INTEGER, local_master, comm,istat)
 
       CALL MPI_BCAST(nte,1,MPI_INTEGER, local_master, comm,istat)
       CALL MPI_BCAST(nne,1,MPI_INTEGER, local_master, comm,istat)

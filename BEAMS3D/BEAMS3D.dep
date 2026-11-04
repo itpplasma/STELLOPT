@@ -455,7 +455,9 @@ fgc_rkh68.o:
 
 
 gauss_rand.o: \
-      ../../LIBSTELL/$(LOCTYPE)/stel_kinds.o
+      ../../LIBSTELL/$(LOCTYPE)/stel_kinds.o \
+      ../../LIBSTELL/$(LOCTYPE)/beams3d_globals.o \
+      ../../LIBSTELL/$(LOCTYPE)/mpi_params.o
       
 
 jacobian_lsode.o: \

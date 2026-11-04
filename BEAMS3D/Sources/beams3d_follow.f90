@@ -142,6 +142,8 @@ SUBROUTINE beams3d_follow
     lbeam = (lbeam .and. (.not.lboxsim))
     R_lines = 0.0; Z_lines = 0.0; PHI_lines = -1.0
     vll_lines = 0.0; moment_lines = 0.0
+    vr_lines = 0.0; vphi_lines = 0.0; vz_lines = 0.0
+    neut_lines = .FALSE.
     S_lines = 1.5; U_lines = 0.0; B_lines = -1.0
     time_lines = -1.0
     t_last = 0.0

@@ -33,14 +33,27 @@
 
           subroutine init_random_seed()
             use iso_fortran_env, only: int64
+            use beams3d_globals, only: random_seed_in
+            use mpi_params, only: myworkid
             implicit none
             integer, allocatable :: seed(:)
             integer :: i, n, un, istat, dt(8), pid
-            integer(int64) :: t
+            integer(int64) :: t, t_rank
             INTEGER*4 :: getpid ! Need for ifort
           
             call random_seed(size = n)
             allocate(seed(n))
+            if (random_seed_in >= 0) then
+               ! Mix the rank in so that ranks draw different streams.
+               t = random_seed_in
+               t_rank = myworkid + 1
+               do i = 1, n
+                  seed(i) = ieor(lcg(t), lcg(t_rank))
+               end do
+               call random_seed(put=seed)
+               deallocate(seed)
+               return
+            end if
             ! First try if the OS provides a random number generator
             open(newunit=un, file="/dev/urandom", access="stream", &
                  form="unformatted", action="read", status="old", iostat=istat)

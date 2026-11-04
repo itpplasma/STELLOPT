@@ -2985,7 +2985,9 @@
 !     dbsubuds, dbsubvds, dbsubsdu, dbsubsdv
 !
 !------------------------------------------------
-      lam = zero; lu = zero; lv = zero
+      IF (PRESENT(lam)) lam = zero
+      IF (PRESENT(lu)) lu = zero
+      IF (PRESENT(lv)) lv = zero
 
       IF (s_in.lt.zero .or. s_in.gt.one) THEN
          WRITE(6, *) ' In tosuvspace, s(flux) must be between 0 and 1'

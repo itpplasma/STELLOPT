@@ -951,7 +951,7 @@
 #if defined(NETCDF)
       SUBROUTINE read_wout_nc(filename, ierr)
       USE ezcdf
-      USE stel_constants, ONLY: mu0
+      USE stel_constants, ONLY: mu0, twopi
       IMPLICIT NONE
 !------------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -961,7 +961,7 @@
 !------------------------------------------------
 !   L o c a l   V a r i a b l e s
 !------------------------------------------------
-      INTEGER :: nwout, ierror, i_animec, i_flow
+      INTEGER :: nwout, ierror, i_animec, i_flow, js
       INTEGER, DIMENSION(3)   :: dimlens
 !      REAL(rprec) :: ohs
       REAL(rprec), DIMENSION(:), ALLOCATABLE :: raxis_cc, raxis_cs,     &
@@ -1138,9 +1138,8 @@
       ALLOCATE (presf(dimlens(1)), stat = ierror)
       CALL cdf_inquire(nwout, vn_phi, dimlens)
       ALLOCATE (phi(dimlens(1)), stat = ierror)
-      CALL cdf_inquire(nwout, vn_chi, dimlens)
-
-      ALLOCATE (chi(dimlens(1)), stat = ierror)
+      ALLOCATE (chi(SIZE(phi)), stat = ierror)
+      chi = 1.E30_dp
 
       CALL cdf_inquire(nwout, vn_phipf, dimlens)
       ALLOCATE (phipf(dimlens(1)), stat = ierror)
@@ -1515,6 +1514,14 @@
       CALL cdf_read(nwout, vn_vp, vp)
       CALL cdf_read(nwout, vn_specw, specw)
       CALL cdf_read(nwout, vn_phip, phip)
+!     Older WOUT files lack chi; rebuild it as VMEC does (eqfor.f).
+      IF (ALL(chi .EQ. 1.E30_dp)) THEN
+         chi(1) = 0
+         DO js = 2, ns
+            chi(js) = chi(js-1) + phip(js)*iotas(js)/(ns-1)
+         END DO
+         chi = twopi*chi
+      END IF
       CALL cdf_read(nwout, vn_jdotb, jdotb)
       CALL cdf_read(nwout, vn_bdotb, bdotb)
       CALL cdf_read(nwout, vn_bgrv, bdotgradv)

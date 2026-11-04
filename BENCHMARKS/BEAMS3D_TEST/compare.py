@@ -187,30 +187,34 @@ if __name__=="__main__":
         # ORBITS_slowzfo: full orbits, denser plasma). The mean and
         # variance of the speed must follow the Fokker-Planck operator for
         # Maxwellian electrons and ions (Rosenbluth potentials, as in Helander
-        # and Sigmar ch. 3) with NRL Coulomb logarithms, to second order:
+        # and Sigmar ch. 3) with the speed-dependent logarithm
+        # ln(lambda_D/max(b_cl, b_qm)) at vbar^2 = v^2 + 2T/m, to second order:
         # dm/dt = K + K''V/2, dV/dt = 2K'V + 2D, with K = Q + D' + 2D/v.
         from math import erf
         ec = 1.602176634E-19; me = 9.1093837139E-31; eps0 = 8.8541878128E-12
-        cl = 2.99792458E8; mp = 1.672621898E-27
+        hbar = 1.054571817E-34
         # ORBITS_slowzfo: ten times the density over a tenth of the time
         dens = 10.0 if run_name == 'ORBITS_slowzfo' else 1.0
         ne, te, ti = 5.0E19*dens, 3.0E3, 1.5E3
         ni, zi, mi = [4.34E19*dens, 1.10E18*dens], [1, 6], [1.6735328380E-27, 1.9926468799E-26]
         mb = b3d.mass[0]
-        lne = 24.0 - np.log(np.sqrt(ne*1.0E-6)/te)
+        spec = [(me, 1, ne, te)] + list(zip(mi, zi, ni, [ti, ti]))
+        debye = 1/np.sqrt(sum(n*z*z*ec/(eps0*t) for m, z, n, t in spec))
         def coefs(v, nspec=3):
-            spec = [(me, 1, ne, te, lne)]
-            for n, z, m in zip(ni, zi, mi):
-                lni = 43.0 - np.log(z*(mb+m)/(mb*m)*mp*np.sqrt(ne*1.0E-6/te)/(v/cl)**2)
-                spec.append((m, z, n, ti, lni))
             K = D = 0.0
-            for m, z, n, t, lnl in spec[:nspec]:
-                c = n*ec**4*z*z*lnl/(4*np.pi*eps0**2)
+            for m, z, n, t in spec[:nspec]:
                 vt = np.sqrt(2*t*ec/m); x = v/vt
+                vbar2 = v*v + vt*vt; mr = mb*m/(mb+m)
+                bcl = z*ec*ec/(4*np.pi*eps0*mr*vbar2)
+                bqm = hbar/(2*mr*np.sqrt(vbar2))
+                lnl = np.log(debye/max(bcl, bqm))
+                dlnl = (2 if bcl > bqm else 1)*v/vbar2
+                c = n*ec**4*z*z*lnl/(4*np.pi*eps0**2)
                 mu0 = (erf(x) - 2*x*np.exp(-x*x)/np.sqrt(np.pi))/(x*x)
                 dmu0 = 4*np.exp(-x*x)/np.sqrt(np.pi) - 2*mu0/x
                 Db = c*mu0/(2*mb*mb*v)
-                K += -c*mu0/(mb*m*vt*vt) + c*(dmu0/vt - mu0/v)/(2*mb*mb*v) + 2*Db/v
+                K += -c*mu0/(mb*m*vt*vt) + c*(dmu0/vt - mu0/v)/(2*mb*mb*v) \
+                    + Db*dlnl/lnl + 2*Db/v
                 D += Db
             return K, D
         def rhs(y):

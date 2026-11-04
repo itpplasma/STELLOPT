@@ -1335,10 +1335,12 @@
             ik = b%face(i)
             ! calculate whether or not this line segment ever hits the plane of the triangle
             alphal = FN(ik,1)*dr(1) + FN(ik,2)*dr(2) + FN(ik,3)*dr(3)
-            betal = FN(ik,1)*r0(1) + FN(ik,2)*r0(2) + FN(ik,3)*r0(3)
             ! tloc indicated when hit. If hit between r0 and r1, tloc between 0 and 1
             IF (alphal == zero) CYCLE
-            tloc = (d(ik)-betal)/alphal
+            ! Subtract positions before projection to retain grazing accuracy.
+            tloc = (FN(ik,1)*(A0(ik,1)-r0(1)) &
+                   +FN(ik,2)*(A0(ik,2)-r0(2)) &
+                   +FN(ik,3)*(A0(ik,3)-r0(3)))/alphal
             IF (tloc > one) CYCLE
             IF (tloc <= zero) CYCLE
             ! If the line segment hits the plane of the triangle
@@ -1508,7 +1510,8 @@
    
          DO i=1,100000
             size = square_wall_size / i
-            IF (CEILING(wall_size(1)/size) * CEILING(wall_size(2)/size) * CEILING(wall_size(3)/size)> nblocks_desired) EXIT
+            ! A planar mesh still needs one block in its zero-extent direction.
+            IF (PRODUCT(MAX(1,CEILING(wall_size/size))) > nblocks_desired) EXIT
          END DO      
       END SUBROUTINE GET_BLOCK_SIZE
    

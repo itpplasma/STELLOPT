@@ -50,14 +50,10 @@ MODULE beams3d_physics_mod
       !     Module PARAMETERS
       !-----------------------------------------------------------------
 
-      DOUBLE PRECISION, PRIVATE, PARAMETER :: electron_mass = 9.10938356D-31 !m_e
+      DOUBLE PRECISION, PRIVATE, PARAMETER :: electron_mass = 9.1093837015D-31 !m_e
       DOUBLE PRECISION, PRIVATE, PARAMETER :: e_charge      = 1.602176634D-19 !e_c
-      DOUBLE PRECISION, PRIVATE, PARAMETER :: sqrt_pi       = 1.7724538509   !pi^(1/2)
-      DOUBLE PRECISION, PRIVATE, PARAMETER :: inv_sqrt2     = 0.7071067812   !1/sqrt(2)
-      DOUBLE PRECISION, PRIVATE, PARAMETER :: mpome         = 5.44602984424355D-4 !e_c
-      DOUBLE PRECISION, PRIVATE, PARAMETER :: inv_dalton    = 6.02214076208E+26 ! 1./AMU [1/kg]
-      DOUBLE PRECISION, PRIVATE, PARAMETER :: inv_Ae    = 1.0/1836.1d0 ! AMU./electron_mass
-      DOUBLE PRECISION, PRIVATE, PARAMETER :: inv_cspeed    = 3.3356409520E-09 ! 1./c [s/m]
+      DOUBLE PRECISION, PRIVATE, PARAMETER :: inv_dalton    = 6.02214076208D+26 ! 1./AMU [1/kg]
+      DOUBLE PRECISION, PRIVATE, PARAMETER :: inv_cspeed    = 3.3356409519815204D-09 ! 1./c [s/m]
       DOUBLE PRECISION, PRIVATE, PARAMETER :: zero          = 0.0D0 ! 0.0
       DOUBLE PRECISION, PRIVATE, PARAMETER :: half          = 0.5D0 ! 1/2
       DOUBLE PRECISION, PRIVATE, PARAMETER :: one           = 1.0D0 ! 1.0

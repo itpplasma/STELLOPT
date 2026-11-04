@@ -68,10 +68,10 @@
       DOUBLE PRECISION, PARAMETER :: degrees_per_radian = 180.0_rprec/ACOS(-1.0_rprec)
 
 
-      !DOUBLE PRECISION, PARAMETER :: e_charge      = 1.60217662E-19 !e_c
-      DOUBLE PRECISION, PARAMETER :: c_speed       = 2.99792458E+08 !Speed of light [m/s]
-      DOUBLE PRECISION, PARAMETER :: e_charge      = 1.602176565e-19 !e_c
-      DOUBLE PRECISION, PARAMETER :: inv_amu       = 6.02214076208E+26 ! 1./AMU [1/kg]
+      !DOUBLE PRECISION, PARAMETER :: e_charge      = 1.602176634D-19 !e_c
+      DOUBLE PRECISION, PARAMETER :: c_speed       = 2.99792458D+08 !Speed of light [m/s]
+      DOUBLE PRECISION, PARAMETER :: e_charge      = 1.602176634D-19 !e_c
+      DOUBLE PRECISION, PARAMETER :: inv_amu       = 6.02214076208D+26 ! 1./AMU [1/kg]
 !-----------------------------------------------------------------------
 !     Begin Subroutine
 !-----------------------------------------------------------------------

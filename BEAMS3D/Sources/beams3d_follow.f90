@@ -38,9 +38,9 @@ SUBROUTINE beams3d_follow
     DOUBLE PRECISION :: tf_nag, t_nag, q_particle(6)
     DOUBLE PRECISION, ALLOCATABLE :: q(:)
 
-    DOUBLE PRECISION, PARAMETER :: electron_mass = 9.10938356D-31 !m_e
+    DOUBLE PRECISION, PARAMETER :: electron_mass = 9.1093837015D-31 !m_e
     DOUBLE PRECISION, PARAMETER :: sqrt_pi       = 1.7724538509   !pi^(1/2)
-    DOUBLE PRECISION, PARAMETER :: e_charge      = 1.60217662E-19 !e_c
+    DOUBLE PRECISION, PARAMETER :: e_charge      = 1.602176634D-19 !e_c
     !-----------------------------------------------------------------------
     !     Begin Subroutine
     !-----------------------------------------------------------------------

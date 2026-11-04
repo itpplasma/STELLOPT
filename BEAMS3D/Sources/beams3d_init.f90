@@ -64,7 +64,7 @@
       bcs2=(/-1,-1/)
       bcs3=(/ 0, 0/)
       !partvmax = 0.0
-      partpmax = 9.10938356E-31 ! Electron mass
+      partpmax = 9.1093837015D-31 ! Electron mass
       
       ! If we pass a vessel then we want to use it for NBI injection
       lvessel_beam = .FALSE.
@@ -264,7 +264,7 @@
             IF (ier /=0) CALL handle_err(EZSPLINE_ERR,'beams3d_init10b',ier)
          IF (lverb .and. ANY(NI_AUX_F(i,:)>0)) WRITE(6,'(A,I1,A,F9.5,A,F9.5,A,I3,A,I2,A,F8.5)') '   Ni(',i,')= [', &
                         MINVAL(NI_AUX_F(i,1:k))*1E-20,',',MAXVAL(NI_AUX_F(i,1:k))*1E-20,'] E20 m^-3;  M: ',&
-            NINT(NI_AUX_M(i)/1.66053906660E-27),' amu;  Z: ',NI_AUX_Z(i), ';  S_MAX_NI: ',s_max_zeff
+            NINT(NI_AUX_M(i)/1.66053906660D-27),' amu;  Z: ',NI_AUX_Z(i), ';  S_MAX_NI: ',s_max_zeff
          END DO
          ! ZEFF
          IF (nzeff>0) THEN
@@ -311,7 +311,7 @@
          END IF
 
          IF (lverb) THEN
-            WRITE(6,'(A,F9.5,A)') '   PLASMA_MASS =  ',plasma_mass/1.66053906660E-27,' amu' 
+            WRITE(6,'(A,F9.5,A)') '   PLASMA_MASS =  ',plasma_mass/1.66053906660D-27,' amu' 
             WRITE(6,'(A,F9.5,A)') '   PLASMA_ZMEAN =  ',plasma_zmean,' [Z]' 
          END IF
          
@@ -750,7 +750,7 @@
          FORALL(i = 1:nr_fida) raxis_fida(i) = (i-0.5)/r_h + rmin_fida !Centered grid as expected by FIDASIM
          FORALL(i = 1:nz_fida) zaxis_fida(i) = (i-0.5)/z_h+ zmin_fida
          FORALL(i = 1:nphi_fida) phiaxis_fida(i) = (i-0.5)/p_h + phimin_fida
-         FORALL(i = 1:nenergy_fida) energy_fida(i) = REAL(i-0.5) / REAL(nenergy_fida) * 0.5 * MAXVAL(mass) * partvmax * partvmax /1.60217662E-19 / 1000.0
+         FORALL(i = 1:nenergy_fida) energy_fida(i) = REAL(i-0.5) / REAL(nenergy_fida) * 0.5 * MAXVAL(mass) * partvmax * partvmax /1.602176634D-19 / 1000.0
          FORALL(i = 1:npitch_fida) pitch_fida(i) = REAL(i-0.5) / REAL(npitch_fida) * 2.0 - 1.0
          IF (nenergy_fida .eq. 1) THEN
             e_h = 1.0/2.d0/energy_fida(1)

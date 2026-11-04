@@ -57,7 +57,7 @@ SUBROUTINE beams3d_follow_gc
     DOUBLE PRECISION :: atol(4)
     DOUBLE PRECISION :: rkh_work(4, 2)
     CHARACTER*1 :: relab
-    DOUBLE PRECISION, PARAMETER :: e_charge      = 1.60217662E-19 !e_c
+    DOUBLE PRECISION, PARAMETER :: e_charge      = 1.602176634D-19 !e_c
 
     !-----------------------------------------------------------------------
     !     External Functions

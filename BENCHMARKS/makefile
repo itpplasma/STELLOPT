@@ -30,6 +30,7 @@ test_beams3d:
 	$(MAKE) test_beams3d_er
 	$(MAKE) test_beams3d_loss
 	$(MAKE) test_beams3d_event_modes
+	$(MAKE) test_beams3d_period
 	$(MAKE) test_beams3d_slow
 	$(MAKE) test_beams3d_seed
 	$(MAKE) test_beams3d_slowz
@@ -232,6 +233,9 @@ test_beams3d_slow:
 
 test_beams3d_seed:
 	@cd $(BEAMS3D_TEST_DIR); ./check_random_seed.py \
+
+test_beams3d_period:
+	@cd $(BEAMS3D_TEST_DIR); python3 check_period.py \
 		--executable $(MYHOME)/xbeams3d \
 		--launcher "$(MPI_RUN) $(MPI_RUN_OPTS_SM)"
 	@echo ""

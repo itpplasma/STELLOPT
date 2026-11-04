@@ -149,7 +149,7 @@
 
       SUBROUTINE init_beams3d_input
       IMPLICIT NONE
-      pi2 = 8.0 * ATAN(1.0)
+      pi2 = 8.0_rprec * ATAN(1.0_rprec)
       nr     = 101
       nphi   = 360
       nz     = 101

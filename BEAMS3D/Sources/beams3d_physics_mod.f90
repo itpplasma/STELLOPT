@@ -1418,11 +1418,16 @@ MODULE beams3d_physics_mod
          vperp = SQRT(2.*modb_temp*moment_temp/mymass)
          rg    = mymass*vperp/(mycharge*modb_temp)
 
-         ! Create the perpendicular vector
-         ! (BxZ)xB
-         xg = -bx_temp*bz_temp*rg
-         yg = -bz_temp*by_temp*rg
-         zg = (by_temp*by_temp+bx_temp*bx_temp)*rg
+         ! Avoid a degenerate perpendicular basis near a vertical field.
+         IF (ABS(bz_temp) < 0.9D0) THEN
+            rho = (/-bx_temp*bz_temp, -by_temp*bz_temp, bx_temp*bx_temp+by_temp*by_temp/)
+         ELSE
+            rho = (/by_temp*by_temp+bz_temp*bz_temp, -bx_temp*by_temp, -bx_temp*bz_temp/)
+         END IF
+         rho = rho*rg/SQRT(SUM(rho*rho))
+         xg = rho(1)
+         yg = rho(2)
+         zg = rho(3)
 
          ! Now make the rotation matrix
          !https://en.wikipedia.org/wiki/Rotation_matrix#Rotation_matrix_from_axis_and_angle

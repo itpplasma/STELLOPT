@@ -24,7 +24,7 @@ MODULE beams3d_physics_mod
                                cum_prob, tau, &
                                epower_prof, ipower_prof, &
                                end_state, fact_crit, fact_crit_pro, fact_pa, &
-                               fact_vsound, fact_coul, fact_kick, &
+                               fact_coul, fact_kick, &
                                ns_prof1, ns_prof2, ns_prof3, ns_prof4, &
                                ns_prof5, my_end, h1_prof, fact_crit_legacy
       USE beams3d_grid, ONLY: delta_t, MODB4D, OMEG4D, nomeg,&
@@ -138,7 +138,6 @@ MODULE beams3d_physics_mod
          CALL SET_CRIT_FACTOR(zmean_loc,mass_loc)
          CALL SET_COULOMB_FACTOR(mymass,myZ,mass_loc)
          fact_pa     = mass_loc/(mymass*zmean_loc)
-         fact_vsound = 1.5*SQRT(e_charge/mass_loc)*therm_factor
       END SUBROUTINE set_local_ion_mix
 
       !-----------------------------------------------------------------
@@ -381,7 +380,8 @@ MODULE beams3d_physics_mod
             !     v_s       Local Sound Speed
             !     speed     Total particle speed
             !-----------------------------------------------------------
-            v_s = fact_vsound*sqrt(ti_temp)
+            ! Thermalised once E < therm_factor*T_i, ASCOT5's ENDCOND_MIN_THERMAL.
+            v_s = SQRT(2*therm_factor*e_charge*ti_temp/mymass)
             vbeta = max(ABS(speed-v_s)*inv_cspeed,1E-6)
 
             !-----------------------------------------------------------
@@ -610,7 +610,8 @@ MODULE beams3d_physics_mod
             bz_temp = bz_temp*binv
             te_cube = te_temp * te_temp * te_temp
             inv_mymass = 1/mymass
-            v_s = fact_vsound*sqrt(ti_temp)
+            ! Thermalised once E < therm_factor*T_i, ASCOT5's ENDCOND_MIN_THERMAL.
+            v_s = SQRT(2*therm_factor*e_charge*ti_temp/mymass)
             speed = sqrt(SUM(q(4:6)*q(4:6)))
             vbeta = max(ABS(speed-v_s)*inv_cspeed,1E-6)
             vll = (q(4)*br_temp+q(5)*bphi_temp+q(6)*bz_temp) 

@@ -167,7 +167,6 @@ SUBROUTINE beams3d_follow
     IF (lbeam) neut_lines(0, mystart:myend) = .TRUE.
 
     ! Some helpers
-    fact_vsound = 1.5*sqrt(e_charge/plasma_mass)*therm_factor
     CALL SET_CRIT_FACTOR(plasma_Zmean,plasma_mass)
 
     ! Handle the Beam defaults

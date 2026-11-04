@@ -347,9 +347,10 @@ C-----------------------------------------------
 !           e_i = d X / di
 !             g = det(g_ij)
 !
-      asubs1 = -lam1 * phip_flux*isigng_w
-      asubu1 =  phi_flux*isigng_w
-      asubv1 = -chi_flux*isigng_w
+!     WOUT stores full fluxes (Wb); angular covariants use Wb/radian.
+      asubs1 = -lam1 * phip_flux*isigng_w/twopi
+      asubu1 =  phi_flux*isigng_w/twopi
+      asubv1 = -chi_flux*isigng_w/twopi
       asups1 = (asubs1*g11i+asubu1*g12i+asubv1*g13i)/gdet
       asupu1 = (asubs1*g12i+asubu1*g22i+asubv1*g23i)/gdet
       asupv1 = (asubs1*g13i+asubu1*g23i+asubv1*g33i)/gdet

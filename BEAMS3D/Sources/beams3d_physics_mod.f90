@@ -172,6 +172,7 @@ MODULE beams3d_physics_mod
          DOUBLE PRECISION :: debye2_inv, debye, tj, vth, x, vbar2, mr, bcl, bqm, &
                              clog, dclog, gam, erfx, ex, g, dg, d, dr, h
          DOUBLE PRECISION, PARAMETER :: two_sqrtpi = 1.1283791670955126D0
+         DOUBLE PRECISION, PARAMETER :: pi_d = 3.141592653589793D0
          dpar = zero; drift = zero; dhh = zero; dpar_e = zero; drift_e = zero
          debye2_inv = zero
          DO b = 1, nspec
@@ -187,14 +188,14 @@ MODULE beams3d_physics_mod
             x = speed/vth
             vbar2 = speed*speed + vth*vth
             mr = ma*mb(b)/(ma + mb(b))
-            bcl = ABS(qa*zb(b)*e_charge)/(4*pi*eps_0*mr*vbar2)
+            bcl = ABS(qa*zb(b)*e_charge)/(4*pi_d*eps_0*mr*vbar2)
             bqm = hbar/(2*mr*SQRT(vbar2))
             IF (bcl > bqm) THEN
                clog = LOG(debye/bcl); dclog = 2*speed/vbar2
             ELSE
                clog = LOG(debye/bqm); dclog = speed/vbar2
             END IF
-            gam = nb(b)*(qa*zb(b)*e_charge)**2/(4*pi*eps_0*eps_0*ma*ma)
+            gam = nb(b)*(qa*zb(b)*e_charge)**2/(4*pi_d*eps_0*eps_0*ma*ma)
             erfx = ERF(x)
             ex = two_sqrtpi*EXP(-x*x)
             IF (x < 1.0D-3) THEN

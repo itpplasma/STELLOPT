@@ -21,7 +21,7 @@ SUBROUTINE out_beams3d_part(t, q)
                              ndot_prof, partvmax, &
                              ns_prof1, ns_prof2, ns_prof3, ns_prof4, &
                              ns_prof5, mymass, mycharge, mybeam, end_state, &
-                             dist5d_prof, dist5d_fida, win_dist5d, nsh_prof4, &
+                             dist5d_prof, dist5d_fida, win_dist5d, win_dist5d_fida, nsh_prof4, &
                              h2_prof, h3_prof, h4_prof, h5_prof, my_end, &
                              r_h, p_h, z_h, e_h, pi_h, E_by_v, h1_prof, &
                              previous_time, wall_hit_valid, wall_hit_field_valid, wall_hit_model, wall_hit_face, &
@@ -142,9 +142,15 @@ SUBROUTINE out_beams3d_part(t, q)
        d4 = MAX(MIN(1+nsh_prof4+FLOOR(h4_prof*vll_temp), ns_prof4), 1) ! vll
        d5 = MAX(MIN(CEILING(SQRT(vperp)*h5_prof         ), ns_prof5), 1) ! Vperp
        xw = weight(myline)*dt
-       !CALL MPI_WIN_LOCK(MPI_LOCK_EXCLUSIVE,myworkid,0,win_dist5d,ier)
+       ! Ranks share this array; serialize the read-modify-write.
+#if defined(MPI_OPT)
+       CALL MPI_WIN_LOCK(MPI_LOCK_EXCLUSIVE,0,0,win_dist5d,ier)
+#endif
        dist5d_prof(mybeam,d1,d2,d3,d4,d5) = dist5d_prof(mybeam,d1,d2,d3,d4,d5) + xw
-       !CALL MPI_WIN_UNLOCK(myworkid,win_dist5d,ier)
+#if defined(MPI_OPT)
+       CALL MPI_WIN_SYNC(win_dist5d,ier)
+       CALL MPI_WIN_UNLOCK(0,win_dist5d,ier)
+#endif
        IF (lfidasim_cyl) THEN
          d1 = MIN(MAX(CEILING((q(1)-rmin_fida)*r_h),1),nr_fida)
          d2 = MIN(MAX(CEILING((x0-phimin_fida)*p_h),1),nphi_fida)
@@ -152,7 +158,15 @@ SUBROUTINE out_beams3d_part(t, q)
          y0 = (q(4)**2+vperp**2)
          d4 = MIN(MAX(CEILING((y0*E_by_v-emin_fida)*e_h),1),nenergy_fida)
          d5 = MIN(MAX(CEILING((q(4)/SQRT(y0)-pimin_fida)*pi_h),1),npitch_fida)
+         ! Ranks share this array; serialize the read-modify-write.
+#if defined(MPI_OPT)
+         CALL MPI_WIN_LOCK(MPI_LOCK_EXCLUSIVE,0,0,win_dist5d_fida,ier)
+#endif
          dist5d_fida(d1,d3,d2,d4,d5) = dist5d_fida(d1,d3,d2,d4,d5) + xw
+#if defined(MPI_OPT)
+         CALL MPI_WIN_SYNC(win_dist5d_fida,ier)
+         CALL MPI_WIN_UNLOCK(0,win_dist5d_fida,ier)
+#endif
        END IF
        IF (lcollision) CALL beams3d_physics_fo(t,q)
        IF (ltherm) THEN
@@ -227,12 +241,28 @@ SUBROUTINE out_beams3d_part(t, q)
              vz_lines(mytdex,myline) = wall_hit_vz(myline)
           END IF
           IF (lneut) THEN
+             ! Ranks share this array; serialize the read-modify-write.
+#if defined(MPI_OPT)
+             CALL MPI_WIN_LOCK(MPI_LOCK_EXCLUSIVE,0,0,win_wall_shine,ier)
+#endif
              wall_shine(mybeam,l) = wall_shine(mybeam,l) + &
                                     weight(myline)*wall_hit_energy(myline)/get_wall_area(l)
+#if defined(MPI_OPT)
+             CALL MPI_WIN_SYNC(win_wall_shine,ier)
+             CALL MPI_WIN_UNLOCK(0,win_wall_shine,ier)
+#endif
           ELSE
              end_state(myline) = 2
+             ! Ranks share this array; serialize the read-modify-write.
+#if defined(MPI_OPT)
+             CALL MPI_WIN_LOCK(MPI_LOCK_EXCLUSIVE,0,0,win_wall_load,ier)
+#endif
              wall_load(mybeam,l) = wall_load(mybeam,l) + &
                                     weight(myline)*wall_hit_energy(myline)/get_wall_area(l)
+#if defined(MPI_OPT)
+             CALL MPI_WIN_SYNC(win_wall_load,ier)
+             CALL MPI_WIN_UNLOCK(0,win_wall_load,ier)
+#endif
           END IF
           IF (lhitonly) THEN
              R_lines(0,myline)      = SQRT(xlast*xlast+ylast*ylast)

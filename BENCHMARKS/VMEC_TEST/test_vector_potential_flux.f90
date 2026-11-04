@@ -16,14 +16,15 @@ program test_vector_potential_flux
     allocate(phi(ns), chi(ns), phipf(ns))
     xm = [0.0_rprec, 1.0_rprec]; xn = 0
     rmnc = 0; zmns = 0; lmns = 0
-    do j = 1, ns
-        s = real(j-1,rprec)/(ns-1)
-        rmnc(1,j) = major; rmnc(2,j) = sqrt(s); zmns(2,j) = sqrt(s)
-        phi(j) = torflux*s; chi(j) = polflux*s; phipf(j) = torflux
-        if (j > 1) lmns(2,j) = 0.07_rprec*sqrt((j-1.5_rprec)/(ns-1))
-    end do
     do idir = -1, 1, 2
+        ! VMEC writes phi and phipf times signgs, chi without it.
         isigng = idir
+        do j = 1, ns
+            s = real(j-1,rprec)/(ns-1)
+            rmnc(1,j) = major; rmnc(2,j) = sqrt(s); zmns(2,j) = sqrt(s)
+            phi(j) = idir*torflux*s; chi(j) = polflux*s; phipf(j) = idir*torflux
+            if (j > 1) lmns(2,j) = 0.07_rprec*sqrt((j-1.5_rprec)/(ns-1))
+        end do
         do j = 1, 3
             s = 0.15_rprec + 0.2_rprec*j
             radius = sqrt(s)
@@ -38,7 +39,7 @@ program test_vector_potential_flux
                 lam = 0.07_rprec*radius*sin(u)
                 ! A poloidal/toroidal circuit must enclose the full WOUT flux,
                 ! not another factor of 2*pi times that flux.
-                expected = idir*[-lam*torflux, torflux*s, -polflux*s]/twopi
+                expected = [-lam*torflux, torflux*s, -polflux*s]/twopi
                 if (.not.all(ieee_is_finite(cov))) error stop 'nonfinite vector potential'
                 if (maxval(abs(cov-expected)) > 2e-7_rprec) then
                     print *, 'covariants / expected: ', cov, expected

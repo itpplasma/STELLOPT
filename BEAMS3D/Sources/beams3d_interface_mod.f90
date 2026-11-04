@@ -124,10 +124,10 @@ CONTAINS
 
    SUBROUTINE beams3d_init_constants
       IMPLICIT NONE
-      pi = 4.0 * ATAN(1.0)
+      pi = 4.0D0 * ATAN(1.0D0)
       pi2 = 8.0D0 * ATAN(1.0D0)
-      invpi2 = 1./pi2
-      mu0 = (16.0E-7) * ATAN(1.0)
+      invpi2 = 1.0D0/pi2
+      mu0 = 1.25663706212D-6 ! CODATA 2018
       to3 = REAL(2)/REAL(3)
       rminor_norm = 1.0
       lverb = .true.

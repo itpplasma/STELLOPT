@@ -87,8 +87,8 @@ def set_trace_time(text, value):
 
 def write_outside_plane(path):
     # BEAMS3D freezes a marker once R > RMAX + eps1, eps1 = (RMAX-RMIN)*1e-10,
-    # so its last segment always crosses a plane just beyond that tolerance.
-    # The overshoot itself is rounding-sized and must not be relied upon.
+    # so its last segment ends beyond that tolerance by the exit step's
+    # overshoot, which can be far smaller than 1e-10 m.
     eps1 = (11.00 - 10.90)*1.0e-10
     near = 11.00 + eps1 + 1.0e-12
     far = near + 5.0e-10

@@ -17,6 +17,13 @@ VPATH = $(SPATH)
 .SUFFIXES : .f .f90 .o
 xbeams3d:  $(LIB) $(ObjectFiles)
 	$(LINK) $@ $(ObjectFiles) $(LIB_LINK)
+
+.PHONY: test_gc2fo
+test_gc2fo: $(LIB) $(filter-out beams3d_main.o,$(ObjectFiles))
+	$(COMPILE_FREE) $(FLAGS) $(MOD_PATH). -c ../../BENCHMARKS/BEAMS3D_TEST/test_gc2fo.f90 -o test_gc2fo.o
+	$(LINK) $@ test_gc2fo.o $(filter-out beams3d_main.o,$(ObjectFiles)) $(LIB_LINK)
+	./test_gc2fo
+
 #Compile object files defined in OBJLIST.
 .f.o :
 	@if grep -q '^!DEC\$$' $<; \

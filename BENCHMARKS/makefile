@@ -26,6 +26,7 @@ test_indexing:
 
 test_beams3d:
 	@echo "Beginning testing of BEAMS3D"
+	$(MAKE) test_beams3d_gyroradius
 	$(MAKE) test_beams3d_basic
 	$(MAKE) test_beams3d_er
 	$(MAKE) test_beams3d_loss
@@ -184,6 +185,9 @@ test_vmec:
 	@cd $(VMEC_TEST_DIR); $(MPI_RUN) $(MPI_RUN_OPTS_SM) $(MYHOME)/xvmec2000 input.DIII-D_reset reset=wout_reset.nc
 	@cd $(VMEC_TEST_DIR) && ./compare.py --file DIII-D_reset
 	@echo "Tesing of VMEC2000 complete"
+
+test_beams3d_gyroradius:
+	$(MAKE) -C ../BEAMS3D/Release -f ../makebeams3d test_gc2fo FLAGS="$(FLAGS_R) $(MOD1_PATH)" TYPE=release LOCTYPE=Release
 
 test_beams3d_birth_phase:
 	@cd $(BEAMS3D_TEST_DIR); cp wout_ORBITS.nc wout_BIRTH_PHASE.nc

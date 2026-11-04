@@ -8,7 +8,7 @@
       REAL(rprec), POINTER, PRIVATE :: rzl_array(:,:,:,:)
       REAL(rprec), POINTER, PRIVATE :: mscale_loc(:), nscale_loc(:)
       LOGICAL, PRIVATE :: lthreed_loc, lasym_loc, lscale
-      PRIVATE :: newt2d, get_flxcoord, boundary_classify
+      PRIVATE :: newt2d, get_flxcoord, boundary_classify, hermite4
 !
 !     ---- Convergence diagnostics for cyl2flx / newt2d ----------------
 !     Compile with -DDEBUG_CYL2FLX to emit a per-rank log of every point
@@ -754,10 +754,10 @@ C-----------------------------------------------
      1               si, ui, vi, r11, z11
       REAL(rprec) :: slo, shi, rho, rholo, rhohi, dwlo, dwhi, dwlo_odd,
      1               dwhi_odd
-      REAL(rprec) :: wmins(0:ntor,0:mpol-1),
-     1               wplus(0:ntor,0:mpol-1),
-     2               dwmins(0:ntor,0:mpol-1),
-     3               dwplus(0:ntor,0:mpol-1)
+      REAL(rprec) :: w4(0:ntor,0:mpol-1,-1:2),
+     1               dw4(0:ntor,0:mpol-1,-1:2)
+      REAL(rprec) :: c4(-1:2), dc4(-1:2), t, rhok
+      INTEGER :: k
       REAL(rprec) :: cosu, sinu, cosv, sinv,
      1               cosmu(0:mpol-1), sinmu(0:mpol-1),
      2               cosnv(0:ntor),  sinnv(0:ntor),
@@ -858,15 +858,34 @@ C-----------------------------------------------
 
       mpol1 = mpol-1
 
-      wmins(:,0:mpol1:2) = wlo
-      wplus(:,0:mpol1:2) = whi
-      wmins(:,1:mpol1:2) = wlo_odd
-      wplus(:,1:mpol1:2) = whi_odd
-
-      dwmins(:,0:mpol1:2) = dwlo
-      dwplus(:,0:mpol1:2) = dwhi
-      dwmins(:,1:mpol1:2) = dwlo_odd
-      dwplus(:,1:mpol1:2) = dwhi_odd
+!     Inside the plasma each mode is a C1 cubic Hermite in s with
+!     Catmull-Rom slopes (odd m: of X/rho), so R, Z and their s
+!     derivatives are continuous across radial nodes. Beyond s=1 and on
+!     the axis interval of odd modes the linear form above is kept.
+      w4 = 0;  dw4 = 0
+      w4(:,0:mpol1:2,0) = wlo;  w4(:,0:mpol1:2,1) = whi
+      dw4(:,0:mpol1:2,0) = dwlo;  dw4(:,0:mpol1:2,1) = dwhi
+      w4(:,1:mpol1:2,0) = wlo_odd;  w4(:,1:mpol1:2,1) = whi_odd
+      dw4(:,1:mpol1:2,0) = dwlo_odd;  dw4(:,1:mpol1:2,1) = dwhi_odd
+      IF (si .le. one .and. ns .ge. 4) THEN
+         t = (si - slo)/hs1
+         CALL hermite4(t, jslo .gt. 1, jshi .lt. ns, c4, dc4)
+         DO k = -1, 2
+            w4(:,0:mpol1:2,k) = c4(k)
+            dw4(:,0:mpol1:2,k) = dc4(k)/hs1
+         END DO
+         IF (jslo .gt. 1) THEN
+            CALL hermite4(t, jslo .gt. 2, jshi .lt. ns, c4, dc4)
+            w4(:,1:mpol1:2,:) = 0;  dw4(:,1:mpol1:2,:) = 0
+            DO k = -1, 2
+               IF (jslo+k .lt. 2) CYCLE
+               rhok = SQRT(hs1*(jslo+k-1))
+               w4(:,1:mpol1:2,k) = rho*c4(k)/rhok
+               dw4(:,1:mpol1:2,k) = (c4(k)/(2*rho)
+     1            + rho*dc4(k)/hs1)/rhok
+            END DO
+         END IF
+      END IF
 
       zcs = 0; zcc =  0; zss = 0 ! 11.21.2023 - SAL
       IF (.not.lasym) THEN
@@ -889,28 +908,20 @@ C-----------------------------------------------
 
       zsc = 1+ntmax; zcs = zcs+ntmax; zcc = zcc+ntmax; zss = zss+ntmax
 
-      rmncc = wmins*rzl_array(jslo,:,:,rcc)
-     1      + wplus*rzl_array(jshi,:,:,rcc)        !!COS(mu) COS(nv)
-      zmnsc = wmins*rzl_array(jslo,:,:,zsc)
-     1      + wplus*rzl_array(jshi,:,:,zsc)        !!SIN(mu) COS(nv)
+      rmncc = radial(w4,rcc)        !!COS(mu) COS(nv)
+      zmnsc = radial(w4,zsc)        !!SIN(mu) COS(nv)
 
       IF (lthreed) THEN
-         rmnss = wmins*rzl_array(jslo,:,:,rss)
-     1         + wplus*rzl_array(jshi,:,:,rss)     !!SIN(mu) SIN(nv)
-         zmncs = wmins*rzl_array(jslo,:,:,zcs)
-     1         + wplus*rzl_array(jshi,:,:,zcs)     !!COS(mu) SIN(nv)
+         rmnss = radial(w4,rss)     !!SIN(mu) SIN(nv)
+         zmncs = radial(w4,zcs)     !!COS(mu) SIN(nv)
       END IF
 
-      drmncc = dwmins*rzl_array(jslo,:,:,rcc)
-     1       + dwplus*rzl_array(jshi,:,:,rcc)        !!COS(mu) COS(nv)
-      dzmnsc = dwmins*rzl_array(jslo,:,:,zsc)
-     1       + dwplus*rzl_array(jshi,:,:,zsc)        !!SIN(mu) COS(nv)
+      drmncc = radial(dw4,rcc)        !!COS(mu) COS(nv)
+      dzmnsc = radial(dw4,zsc)        !!SIN(mu) COS(nv)
 
       IF (lthreed) THEN
-         drmnss = dwmins*rzl_array(jslo,:,:,rss)
-     1          + dwplus*rzl_array(jshi,:,:,rss)     !!SIN(mu) SIN(nv)
-         dzmncs = dwmins*rzl_array(jslo,:,:,zcs)
-     1          + dwplus*rzl_array(jshi,:,:,zcs)     !!COS(mu) SIN(nv)
+         drmnss = radial(dw4,rss)     !!SIN(mu) SIN(nv)
+         dzmncs = radial(dw4,zcs)     !!COS(mu) SIN(nv)
       END IF
 
 !
@@ -1000,28 +1011,20 @@ C-----------------------------------------------
 
       IF (.not.lasym) GOTO 1000
 
-      rmnsc = wmins*rzl_array(jslo,:,:,rsc)
-     1      + wplus*rzl_array(jshi,:,:,rsc)        !!SIN(mu) COS(nv)
-      zmncc = wmins*rzl_array(jslo,:,:,zcc)
-     1      + wplus*rzl_array(jshi,:,:,zcc)        !!COS(mu) COS(nv)
+      rmnsc = radial(w4,rsc)        !!SIN(mu) COS(nv)
+      zmncc = radial(w4,zcc)        !!COS(mu) COS(nv)
 
       IF (lthreed) THEN
-         rmncs = wmins*rzl_array(jslo,:,:,rcs)
-     1         + wplus*rzl_array(jshi,:,:,rcs)     !!COS(mu) SIN(nv)
-         zmnss = wmins*rzl_array(jslo,:,:,zss)
-     1         + wplus*rzl_array(jshi,:,:,zss)     !!SIN(mu) SIN(nv)
+         rmncs = radial(w4,rcs)     !!COS(mu) SIN(nv)
+         zmnss = radial(w4,zss)     !!SIN(mu) SIN(nv)
       END IF
 
-      drmnsc = dwmins*rzl_array(jslo,:,:,rsc)
-     1       + dwplus*rzl_array(jshi,:,:,rsc)        !!SIN(mu) COS(nv)
-      dzmncc = dwmins*rzl_array(jslo,:,:,zcc)
-     1       + dwplus*rzl_array(jshi,:,:,zcc)        !!COS(mu) COS(nv)
+      drmnsc = radial(dw4,rsc)        !!SIN(mu) COS(nv)
+      dzmncc = radial(dw4,zcc)        !!COS(mu) COS(nv)
 
       IF (lthreed) THEN
-         drmncs = dwmins*rzl_array(jslo,:,:,rcs)
-     1          + dwplus*rzl_array(jshi,:,:,rcs)     !!COS(mu) SIN(nv)
-         dzmnss = dwmins*rzl_array(jslo,:,:,zss)
-     1          + dwplus*rzl_array(jshi,:,:,zss)     !!SIN(mu) SIN(nv)
+         drmncs = radial(dw4,rcs)     !!COS(mu) SIN(nv)
+         dzmnss = radial(dw4,zss)     !!SIN(mu) SIN(nv)
       END IF
 
 !
@@ -1084,7 +1087,49 @@ C-----------------------------------------------
 
       r_cyl(1) = r11;  r_cyl(3) = z11
 
+      CONTAINS
+
+      FUNCTION radial(w, c) RESULT(x)
+      REAL(rprec), INTENT(in) :: w(0:ntor,0:mpol-1,-1:2)
+      INTEGER, INTENT(in) :: c
+      REAL(rprec) :: x(0:ntor,0:mpol-1)
+      INTEGER :: kk
+      x = 0
+      DO kk = -1, 2
+         IF (jslo+kk .ge. 1 .and. jslo+kk .le. ns)
+     1      x = x + w(:,:,kk)*rzl_array(jslo+kk,:,:,c)
+      END DO
+      END FUNCTION radial
+
       END SUBROUTINE flx2cyl
+
+!     Cubic Hermite weights on nodes j-1..j+2 for the interval [j,j+1]
+!     at t in [0,1], with Catmull-Rom slopes, one-sided where node j-1
+!     (lleft false) or j+2 (lright false) is unavailable. dc is d/dt.
+      PURE SUBROUTINE hermite4(t, lleft, lright, c, dc)
+      REAL(rprec), INTENT(in) :: t
+      LOGICAL, INTENT(in) :: lleft, lright
+      REAL(rprec), INTENT(out) :: c(-1:2), dc(-1:2)
+      REAL(rprec) :: h00, h10, h01, h11, d00, d10, d01, d11
+      REAL(rprec) :: sl(-1:2), sr(-1:2)
+      h00 = (1+2*t)*(1-t)**2;  h10 = t*(1-t)**2
+      h01 = t*t*(3-2*t);       h11 = t*t*(t-1)
+      d00 = 6*t*(t-1);         d10 = (1-t)*(1-3*t)
+      d01 = 6*t*(1-t);         d11 = t*(3*t-2)
+      sl = 0;  sr = 0
+      IF (lleft) THEN
+         sl(-1) = -0.5_dp;  sl(1) = 0.5_dp
+      ELSE
+         sl(0) = -1;  sl(1) = 1
+      END IF
+      IF (lright) THEN
+         sr(0) = -0.5_dp;  sr(2) = 0.5_dp
+      ELSE
+         sr(0) = -1;  sr(1) = 1
+      END IF
+      c = h10*sl + h11*sr;  c(0) = c(0) + h00;  c(1) = c(1) + h01
+      dc = d10*sl + d11*sr; dc(0) = dc(0) + d00; dc(1) = dc(1) + d01
+      END SUBROUTINE hermite4
 
       SUBROUTINE cyl2flx(rzl_in, r_cyl, c_flx, ns_in, ntor_in, mpol_in,
      1      ntmax_in, lthreed_in, lasym_in, info, nfe, fmin,

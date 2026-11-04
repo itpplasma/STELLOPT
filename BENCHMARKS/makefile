@@ -233,6 +233,9 @@ test_beams3d_slow:
 
 test_beams3d_seed:
 	@cd $(BEAMS3D_TEST_DIR); ./check_random_seed.py \
+		--executable $(MYHOME)/xbeams3d \
+		--launcher "$(MPI_RUN) $(MPI_RUN_OPTS_SM)"
+	@echo ""
 
 test_beams3d_period:
 	@cd $(BEAMS3D_TEST_DIR); python3 check_period.py \

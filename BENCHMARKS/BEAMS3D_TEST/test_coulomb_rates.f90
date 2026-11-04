@@ -1,8 +1,10 @@
 program test_coulomb_rates
     ! The BEAMS3D collision coefficients against the NRL Plasma Formulary
-    ! (2019, p. 31) energy-loss and deflection rates, written with the
+    ! (2019, p. 31) energy-loss and transverse rates, written with the
     ! Maxwell integral psi(x) instead of the Chandrasekhar G, and the
-    ! zero-flux condition of a Maxwellian at equal temperatures.
+    ! zero-flux condition of a Maxwellian at equal temperatures. The NRL
+    ! rates assume a constant logarithm; with ln(Lambda(v)) the zero-flux
+    ! drift carries the extra term v D dln(Lambda)/dv.
     use beams3d_physics_mod, only: coulomb_rates
     implicit none
     integer, parameter :: dp = kind(1.0d0), ns = 3
@@ -12,7 +14,7 @@ program test_coulomb_rates
     real(dp), parameter :: ma = 2.01410177812_dp*amu, qa = e, temp = 1.0d3
     real(dp) :: nb(ns), tb(ns), mb(ns), zb(ns), v, h, vth
     real(dp) :: dpar, drift, dhh, dpe, dre, dplus, dminus, expected
-    real(dp) :: loss, defl, x, nu0, lam
+    real(dp) :: loss, defl, x, nu0, lam, dlam, logflux
     integer :: k, b
     real(dp), parameter :: speeds(4) = [0.3_dp, 1.0_dp, 3.0_dp, 30.0_dp]
 
@@ -28,19 +30,24 @@ program test_coulomb_rates
         call coulomb_rates(ma, qa, v, ns, nb, tb, mb, zb, dpar, drift, dhh, dpe, dre)
         loss = 0.0_dp
         defl = 0.0_dp
+        logflux = 0.0_dp
         do b = 1, ns
             x = mb(b)*v*v/(2*temp*e)
             lam = coulomb_log(b, v)
             nu0 = nb(b)*(qa*zb(b)*e)**2*lam/(4*pi*eps0**2*ma**2*v**3)
             loss = loss + 2*(ma/mb(b)*psi(x) - dpsi(x))*nu0
             defl = defl + 2*((1 - 0.5_dp/x)*psi(x) + dpsi(x))*nu0
+            dlam = (coulomb_log(b, v*(1 + 1.0d-6)) - coulomb_log(b, v*(1 - 1.0d-6)))/(2.0d-6*v)
+            logflux = logflux + v*(nu0*v*v*psi(x)/(2*x))*dlam/lam
         end do
         ! Ito: d<m v^2/2>/dt = m (v drift + D) = -nu_eps m v^2/2.
-        expected = -loss*0.5_dp*v*v
+        expected = -loss*0.5_dp*v*v + logflux
         if (abs((v*drift + dpar) - expected) > 1.0d-10*abs(expected)) &
             error stop 'Energy-loss rate differs from the NRL rate'
-        if (abs(dhh - 0.5_dp*defl) > 1.0d-10*0.5_dp*defl) &
-            error stop 'Pitch scattering differs from the NRL deflection rate'
+        ! NRL's transverse rate nu_perp is 2 nu_D; dhh is the Lorentz
+        ! coefficient nu_D/2.
+        if (abs(dhh - 0.25_dp*defl) > 1.0d-10*0.25_dp*defl) &
+            error stop 'Pitch scattering differs from the NRL transverse rate'
         h = 1.0d-5*v
         call coulomb_rates(ma, qa, v + h, ns, nb, tb, mb, zb, dplus, drift, dhh, dpe, dre)
         call coulomb_rates(ma, qa, v - h, ns, nb, tb, mb, zb, dminus, drift, dhh, dpe, dre)

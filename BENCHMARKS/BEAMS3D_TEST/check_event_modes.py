@@ -86,8 +86,12 @@ def set_trace_time(text, value):
 
 
 def write_outside_plane(path):
-    near = 11.0000000003
-    far = 11.0000000008
+    # BEAMS3D freezes a marker once R > RMAX + eps1, eps1 = (RMAX-RMIN)*1e-10,
+    # so its last segment ends beyond that tolerance by the exit step's
+    # overshoot, which can be far smaller than 1e-10 m.
+    eps1 = (11.00 - 10.90)*1.0e-10
+    near = 11.00 + eps1 + 1.0e-12
+    far = near + 5.0e-10
     vertices = np.array(((near, -1.0, -1.0), (near, 1.0, -1.0),
                          (near, 1.0, 1.0), (near, -1.0, 1.0),
                          (far, -1.0, -1.0), (far, 1.0, -1.0),

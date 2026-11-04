@@ -41,12 +41,7 @@ MODULE beams3d_physics_mod
       USE EZspline_obj
       USE EZspline
       USE adas_mod_parallel
-      USE collision_operators, ONLY: COULOMB_LOG_NRL_COUNTERSTREAM,&
-                                     COULOMB_LOG_NRL_IEA, &
-                                     COULOMB_LOG_NRL_IEB, &
-                                     V_CRITICAL, V_CRITICAL_WEILAND, &
-                                     TAU_SPITZER, SET_CRIT_FACTOR, &
-                                     SET_COULOMB_FACTOR
+      USE collision_operators, ONLY: SET_CRIT_FACTOR, SET_COULOMB_FACTOR
       USE fusion_mod, ONLY: DT_CROSS_SECTION, DD_CROSS_SECTION, &
                             DDHe3_CROSS_SECTION, DHe3_CROSS_SECTION
       USE mpi_params 
@@ -56,7 +51,7 @@ MODULE beams3d_physics_mod
       !-----------------------------------------------------------------
 
       DOUBLE PRECISION, PRIVATE, PARAMETER :: electron_mass = 9.10938356D-31 !m_e
-      DOUBLE PRECISION, PRIVATE, PARAMETER :: e_charge      = 1.60217662E-19 !e_c
+      DOUBLE PRECISION, PRIVATE, PARAMETER :: e_charge      = 1.602176634D-19 !e_c
       DOUBLE PRECISION, PRIVATE, PARAMETER :: sqrt_pi       = 1.7724538509   !pi^(1/2)
       DOUBLE PRECISION, PRIVATE, PARAMETER :: inv_sqrt2     = 0.7071067812   !1/sqrt(2)
       DOUBLE PRECISION, PRIVATE, PARAMETER :: mpome         = 5.44602984424355D-4 !e_c
@@ -66,8 +61,8 @@ MODULE beams3d_physics_mod
       DOUBLE PRECISION, PRIVATE, PARAMETER :: zero          = 0.0D0 ! 0.0
       DOUBLE PRECISION, PRIVATE, PARAMETER :: half          = 0.5D0 ! 1/2
       DOUBLE PRECISION, PRIVATE, PARAMETER :: one           = 1.0D0 ! 1.0
-      DOUBLE PRECISION, PRIVATE, PARAMETER :: eps_0 = 8.854187817E-12;
-      DOUBLE PRECISION, PRIVATE, PARAMETER :: hbar = 1.054571817E-34;
+      DOUBLE PRECISION, PRIVATE, PARAMETER :: eps_0 = 8.8541878128D-12
+      DOUBLE PRECISION, PRIVATE, PARAMETER :: hbar = 1.054571817D-34
 
       !-----------------------------------------------------------------
       !     SUBROUTINES
@@ -150,153 +145,112 @@ MODULE beams3d_physics_mod
       END SUBROUTINE set_local_ion_mix
 
       !-----------------------------------------------------------------
-      !     Function:      coll_op_nrl19
-      !     Authors:       S. Lazerson (samuel.lazerson@ipp.mpg.de)
-      !     Date:          07/05/2023
-      !     Description:   Slowing down calc using
-      !                    Coulomb log as defined in NRL 2019 for all species
-      !                    Calculationg method before 2024
-      !-----------------------------------------------------------------
-      FUNCTION coll_op_nrl19(ne_in,te_in,vbeta_in,Zeff_in)   result(slow_par)
-         !--------------------------------------------------------------
-         !     Input Parameters
-         !          ne_in        Electron Density [m^-3]
-         !          te_in        Electron Temperature [eV]
-         !          vbeta_in     Normalized Particle Velocity [c]
-         !          Zeff_in      Plasma effective charge [arb]
-         !     Output Parameters
-         !          slow_par(1)     Critical velocity vcrit [m/s]    
-         !          slow_par(2)     Spitzer time tau_spit [s]    
-         !          slow_par(3)     Pitch angle scattering factor [arb]        
-         !--------------------------------------------------------------
-         IMPLICIT NONE
-         DOUBLE PRECISION :: slow_par(3)
-         DOUBLE PRECISION, INTENT(in) :: ne_in, te_in, vbeta_in, Zeff_in
-         DOUBLE PRECISION :: coulomb_log, coulomb_loge
-         coulomb_log = COULOMB_LOG_NRL_COUNTERSTREAM(ne_in,te_in,vbeta_in,Zeff_in)
-         ! Electron drag needs the electron-ion logarithm (about 16, not
-         ! the ion value of about 21), and v_c needs [Z] (plasma_Zmean) and
-         ! the ion/electron logarithm ratio, as in Stix (1972).
-         IF (te_in < 10*myZ*myZ) THEN
-            coulomb_loge = COULOMB_LOG_NRL_IEA(myZ,ne_in,te_in)
-         ELSE
-            coulomb_loge = COULOMB_LOG_NRL_IEB(ne_in,te_in)
-         END IF
-         slow_par(1) = V_CRITICAL_WEILAND(te_in,coulomb_log,coulomb_loge)
-         slow_par(2) = TAU_SPITZER(mymass,ne_in,te_in,myZ,coulomb_loge)
-         slow_par(3) = Zeff_in*fact_pa  
-      END FUNCTION coll_op_nrl19
-
-      !-----------------------------------------------------------------
-      !     Function:      coll_op_nubeam
-      !     Authors:       D. Kulla (david.kulla@ipp.mpg.de)
-      !     Date:          07/05/2023
-      !     Description:   Slowing down calc using
-      !                    Coulomb log as defined in NUBEAM code
-      !                    (r8_coulog.f90).
-      !-----------------------------------------------------------------
-      FUNCTION coll_op_nubeam(ne_in,ni_in,te_in,ti_in,vbeta_in,Zeff_in,modb,speed_in) result(slow_par)
-         !--------------------------------------------------------------
-         !     Input Parameters
-         !          ne_in        Electron Density [m^-3]
-         !          ni_in        Ion Densities [m^-3]
-         !          te_in        Electron Temperature [eV]
-         !          ti_in        Electron Temperature [eV]
-         !          Zeff_in      Plasma effective charge [arb]
-         !     Output Parameters
-         !          slow_par(1)  Critical velocity vcrit [m/s]    
-         !          slow_par(2)  Spitzer time tau_spit [s]    
-         !          slow_par(3)  Pitch angle scattering factor [arb]  
-         !--------------------------------------------------------------
-         IMPLICIT NONE
-         DOUBLE PRECISION :: slow_par(3)
-         DOUBLE PRECISION, INTENT(in) :: ne_in, te_in, ti_in, ni_in(NION),vbeta_in, Zeff_in, speed_in,modb
-         INTEGER :: i
-         DOUBLE PRECISION :: sm, omega2, vrel2,vrel2_part,bmincl,bminqu,bmax,bmin,coulomb_log, coulomb_loge, zi2_ai, zi2,myA
-         ! Same formulation as NUBEAM internal calculation (r8_coulog.f90), different Units than usual: 
-         !Z is in elementary charge, A is in amu, energy and temperature in keV.
-         vrel2_part=speed_in**2/e_charge/inv_dalton
-         sm=zero
-         do i=1,COUNT(NI_AUX_Z>0)
-            myA = NI_AUX_M(i)*inv_dalton
-            omega2=1.74d0*NI_AUX_Z(i)**2/(myA)*ni_in(i) & 
-                  +9.18d15*NI_AUX_Z(i)**2/(myA)**2*modb**2
-            vrel2=9.58d7*(ti_in/(myA) + vrel2_part) !Assume same ti for all species
-            sm=sm+omega2/vrel2
-         end do
-         myA = mymass*inv_dalton
-
-         !Electrons A_e=1/1836.1
-         omega2=1.74d0*1836.1*ne_in &
-                +9.18d15*1836.1**2*modb**2
-         vrel2=9.58d7*(te_in*1836.1 + vrel2_part)
-         sm=sm+omega2/vrel2
-         bmax=sqrt(one/sm)
-         vrel2=9.58d7*(3.0*te_in*1836.1 + vrel2_part) !Different vrel for bmin calc                 
-         bmincl=0.13793d0*abs(mycharge/e_charge)*(inv_Ae+myA)/(inv_Ae*myA*vrel2)
-         bminqu=1.9121d-8*(myA+inv_Ae)/(inv_Ae*myA*sqrt(vrel2))
-         bmin=max(bmincl,bminqu)
-         coulomb_loge=log(bmax/bmin) !only last coulomb log is saved
-         coulomb_loge = max(coulomb_loge,one)
-         zi2_ai=zero
-         zi2=zero
-
-         do i=1,COUNT(NI_AUX_Z>0)
-            vrel2=9.58d7*(3.0*ti_in/(NI_AUX_M(i)*inv_dalton) +  vrel2_part) !Assume same ti for all species
-            bmincl=0.13793d0*abs(NI_AUX_Z(i)*mycharge/e_charge)*(NI_AUX_M(i)+mymass)/NI_AUX_M(i)/myA/vrel2
-            bminqu=1.9121d-8*(NI_AUX_M(i)+mymass)/NI_AUX_M(i)/myA/sqrt(vrel2)
-            bmin=max(bmincl,bminqu)
-            coulomb_log=log(bmax/bmin) !only last coulomb log is saved - TODO: implement for multi-species
-            coulomb_log = max(coulomb_log,one)
-            zi2_ai = zi2_ai+ni_in(i) *NI_AUX_Z(i)**2/(NI_AUX_M(i)*inv_dalton) * coulomb_log
-            zi2 = zi2+ni_in(i) *NI_AUX_Z(i)**2 * coulomb_log
-            !WRITE(6,*) coulomb_log, coulomb_loge
-         end do
-         coulomb_log = max(coulomb_log,one)
-      
-         zi2_ai=zi2_ai/(ne_in*coulomb_loge)
-         zi2=zi2/(ne_in*coulomb_loge)
-
-         slow_par(1) = 5.33e4*SQRT(te_in) * (zi2_ai)**(1.0/3.0)
-         slow_par(2) =6.32e8*myA/(myZ*myZ*coulomb_loge)*SQRT(te_in*te_in*te_in)/(ne_in*1.0e-6)
-         slow_par(3) =zi2/zi2_ai/myA
-         RETURN
-      END FUNCTION coll_op_nubeam
-
-      !-----------------------------------------------------------------
-      !     Subroutine:    collision_speed_step
-      !     Description:   Euler-Maruyama step of the speed over dt with
-      !                    drag and energy diffusion (Ito). de_e and de_i
-      !                    are the mean energies [J] given to electrons
-      !                    and ions over the step.
+      !     Subroutine:    coulomb_rates
+      !     Description:   Linearised Landau operator of a test particle
+      !                    (mass ma [kg], charge qa [C], speed [m/s]) in
+      !                    Maxwellian species b (density nb [m^-3],
+      !                    temperature tb [eV], mass mb [kg], charge
+      !                    number zb), species 1 being the electrons.
+      !                    Each pair has ln(lambda_D/b_min), b_min the larger
+      !                    of the classical and quantum impact parameters at
+      !                    vbar**2 = v**2 + 2*T_b/m_b, as in ASCOT5.
+      !                    dpar  speed diffusion D [m^2/s^3]
+      !                    drift Ito speed drift (1/v^2)d(v^2 D)/dv - m v D/T
+      !                          [m/s^2], so a Maxwellian is stationary
+      !                    dhh   pitch scattering nu_D/2 [1/s]
+      !                    dpar_e, drift_e electron parts
       !   https://doi.org/10.1103/PhysRev.107.1
-      !   https://doi.org/10.1063/1.1694943
-      !   https://doi.org/10.1016/0021-9991(81)90111-X
       !   https://doi.org/10.1016/j.cpc.2014.01.014
       !-----------------------------------------------------------------
-      SUBROUTINE collision_speed_step(speed,te_in,ti_in,tau_spit_inv,vc3_tauinv,reduction,de_e,de_i)
+      PURE SUBROUTINE coulomb_rates(ma,qa,speed,nspec,nb,tb,mb,zb,dpar,drift,dhh,dpar_e,drift_e)
          IMPLICIT NONE
-         DOUBLE PRECISION, INTENT(in)  :: speed, te_in, ti_in, tau_spit_inv, vc3_tauinv
-         DOUBLE PRECISION, INTENT(out) :: reduction, de_e, de_i
-         DOUBLE PRECISION :: inv_mymass, speed3inv, speed2inv, ddve, ddvi, &
-                             zeta, sigma, dve, dvi
-         inv_mymass = one/mymass
-         speed3inv = 1.0/(speed*speed*speed)
-         speed2inv = speed*speed3inv
-         ! Variance of the speed change from electrons and from ions
-         ddve=ABS(2*e_charge*dt*te_in*inv_mymass*tau_spit_inv)
-         ddvi=ABS(2*e_charge*dt*ti_in*vc3_tauinv*inv_mymass*speed3inv)
-         CALL gauss_rand(1,zeta)  ! A random from a standard normal (1,1)
-         sigma = sqrt( ddve+ddvi) ! The standard deviation.
-         ! Drag rates [m/s^2]
-         dve   = ( 1.0 - 2.0*te_in*inv_mymass*e_charge*speed2inv)*speed*tau_spit_inv
-         dvi   = ( 1.0 +     ti_in*inv_mymass*e_charge*speed2inv)*vc3_tauinv/(speed*speed)
-         reduction = (dve + dvi)*dt+sigma*zeta
-         ! Mean energy loss m*v*r - m*r**2/2 per species for the speed loss r;
-         ! booking the zero-mean kick as well would only add noise.
-         de_e = mymass*(speed*dve*dt - half*ddve)
-         de_i = mymass*(speed*dvi*dt - half*ddvi)
-      END SUBROUTINE collision_speed_step
+         INTEGER, INTENT(in) :: nspec
+         DOUBLE PRECISION, INTENT(in)  :: ma, qa, speed
+         DOUBLE PRECISION, INTENT(in)  :: nb(nspec), tb(nspec), mb(nspec), zb(nspec)
+         DOUBLE PRECISION, INTENT(out) :: dpar, drift, dhh, dpar_e, drift_e
+         INTEGER :: b
+         DOUBLE PRECISION :: debye2_inv, debye, tj, vth, x, vbar2, mr, bcl, bqm, &
+                             clog, dclog, gam, erfx, ex, g, dg, d, dr, h
+         DOUBLE PRECISION, PARAMETER :: two_sqrtpi = 1.1283791670955126D0
+         dpar = zero; drift = zero; dhh = zero; dpar_e = zero; drift_e = zero
+         debye2_inv = zero
+         DO b = 1, nspec
+            IF (nb(b) > zero .and. zb(b) /= zero) debye2_inv = debye2_inv &
+               + nb(b)*(zb(b)*e_charge)**2/(eps_0*tb(b)*e_charge)
+         END DO
+         IF (debye2_inv <= zero) RETURN
+         debye = one/SQRT(debye2_inv)
+         DO b = 1, nspec
+            IF (nb(b) <= zero .or. zb(b) == zero) CYCLE
+            tj = tb(b)*e_charge
+            vth = SQRT(2*tj/mb(b))
+            x = speed/vth
+            vbar2 = speed*speed + vth*vth
+            mr = ma*mb(b)/(ma + mb(b))
+            bcl = ABS(qa*zb(b)*e_charge)/(4*pi*eps_0*mr*vbar2)
+            bqm = hbar/(2*mr*SQRT(vbar2))
+            IF (bcl > bqm) THEN
+               clog = LOG(debye/bcl); dclog = 2*speed/vbar2
+            ELSE
+               clog = LOG(debye/bqm); dclog = speed/vbar2
+            END IF
+            gam = nb(b)*(qa*zb(b)*e_charge)**2/(4*pi*eps_0*eps_0*ma*ma)
+            erfx = ERF(x)
+            ex = two_sqrtpi*EXP(-x*x)
+            IF (x < 1.0D-3) THEN
+               ! Series avoids cancellation in erf - x erf'.
+               g = two_sqrtpi*x*(one - 0.6D0*x*x)/3
+               dg = two_sqrtpi*(one - 1.8D0*x*x)/3
+            ELSE
+               g = (erfx - x*ex)/(2*x*x)
+               dg = ex - 2*g/x
+            END IF
+            d = gam*clog*g/speed
+            dr = gam*(clog*g + speed*dclog*g + speed*clog*dg/vth)/(speed*speed) &
+                 - ma*speed*d/tj
+            h = gam*clog*(erfx - g)/(2*speed*speed*speed)
+            dpar = dpar + d; drift = drift + dr; dhh = dhh + h
+            IF (b == 1) THEN
+               dpar_e = d; drift_e = dr
+            END IF
+         END DO
+      END SUBROUTINE coulomb_rates
+
+      !-----------------------------------------------------------------
+      !     Subroutine:    local_coulomb_rates
+      !     Description:   coulomb_rates for the beam particle against the
+      !                    local electrons and the NION ion species.
+      !                    ne [m^-3], te and ti [eV], ni [m^-3].
+      !-----------------------------------------------------------------
+      SUBROUTINE local_coulomb_rates(speed,ne_in,te_in,ni_in,ti_in,dpar,drift,dhh,dpar_e,drift_e)
+         IMPLICIT NONE
+         DOUBLE PRECISION, INTENT(in)  :: speed, ne_in, te_in, ti_in, ni_in(NION)
+         DOUBLE PRECISION, INTENT(out) :: dpar, drift, dhh, dpar_e, drift_e
+         DOUBLE PRECISION :: nb(NION+1), tb(NION+1), mb(NION+1), zb(NION+1)
+         nb(1) = ne_in; tb(1) = te_in; mb(1) = electron_mass; zb(1) = -one
+         nb(2:) = ni_in; tb(2:) = ti_in; mb(2:) = NI_AUX_M(1:NION); zb(2:) = NI_AUX_Z(1:NION)
+         CALL coulomb_rates(mymass,mycharge,speed,NION+1,nb,tb,mb,zb, &
+                            dpar,drift,dhh,dpar_e,drift_e)
+      END SUBROUTINE local_coulomb_rates
+
+      !-----------------------------------------------------------------
+      !     Subroutine:    scatter_pitch
+      !     Description:   Isotropic rotation of the velocity by the fixed
+      !                    angle sqrt(4*dhh*dt) about a random azimuth. Its
+      !                    weak generator is dhh*d/dzeta[(1-zeta^2)d/dzeta],
+      !                    and the pitch stays in [-1,1] without clipping.
+      !-----------------------------------------------------------------
+      SUBROUTINE scatter_pitch(zeta,dhh)
+         IMPLICIT NONE
+         DOUBLE PRECISION, INTENT(inout) :: zeta
+         DOUBLE PRECISION, INTENT(in)    :: dhh
+         DOUBLE PRECISION :: angle, azimuth
+         angle = SQRT(4*dhh*dt)
+         CALL RANDOM_NUMBER(azimuth)
+         azimuth = pi2*azimuth
+         zeta = zeta*COS(angle) + SQRT(MAX(one - zeta*zeta, zero))*SIN(angle)*COS(azimuth)
+         zeta = MIN(MAX(zeta, -one), one)
+      END SUBROUTINE scatter_pitch
 
       !-----------------------------------------------------------------
       !     Function:      beams3d_physics_gc
@@ -332,7 +286,7 @@ MODULE beams3d_physics_mod
                           sm,omega2,vrel2,bmax,bmincl,bminqu,bmin,&
                           zdelth,zrang
          DOUBLE PRECISION :: Ebench  ! for ASCOT Benchmark
-         DOUBLE PRECISION :: slow_par(3), ni_temp(NION)
+         DOUBLE PRECISION :: ni_temp(NION), dpar, drift, dhh, dpar_e, drift_e
          ! For splines
          INTEGER :: i,j,k, l
          REAL*8 :: xparam, yparam, zparam
@@ -437,14 +391,8 @@ MODULE beams3d_physics_mod
             !     te in eV and ne in cm^-3
             !-----------------------------------------------------------
             IF ((te_temp > te_col_min).and.(ne_temp > 0)) THEN
-#if defined(B3D_COLLOP_NUBEAM)
-               slow_par = coll_op_nubeam(ne_temp,ni_temp,te_temp,ti_temp,vbeta,Zeff_temp,modb,speed)
-#else
-               slow_par = coll_op_nrl19(ne_temp,te_temp,vbeta,Zeff_temp)
-#endif
-               vcrit_cube = slow_par(1)*slow_par(1)*slow_par(1)
-               tau_spit_inv = one/slow_par(2)
-               vc3_tauinv = vcrit_cube*tau_spit_inv
+               CALL local_coulomb_rates(speed,ne_temp,te_temp,ni_temp,ti_temp, &
+                                        dpar,drift,dhh,dpar_e,drift_e)
             ELSE !Dont evaluate collisions
                !q(4) = vll + vrot_para
                RETURN
@@ -458,8 +406,11 @@ MODULE beams3d_physics_mod
             !     newspeed  New total speed
             !     vfrac     Ratio between new and old speed (helper)
             !-----------------------------------------------------------
-            CALL collision_speed_step(speed,te_temp,ti_temp,tau_spit_inv,vc3_tauinv,reduction,de_e,de_i)
-            newspeed = speed - reduction
+            CALL gauss_rand(1,zeta)  ! A random from a standard normal (1,1)
+            newspeed = speed + drift*dt + SQRT(2*dpar*dt)*zeta
+            ! Mean energy given to electrons and to ions over dt
+            de_e = -mymass*(speed*drift_e + dpar_e)*dt
+            de_i = -mymass*(speed*(drift - drift_e) + dpar - dpar_e)*dt
             vfrac = newspeed/speed
             !-----------------------------------------------------------
             !  Thermalize particle or adjust vll and moment
@@ -488,14 +439,8 @@ MODULE beams3d_physics_mod
             !------------------------------------------------------------
             !  Pitch Angle Scattering
             !------------------------------------------------------------
-            speed_cube = vc3_tauinv*slow_par(3)*dt/(speed*speed*speed) ! redefine as inverse
-            zeta_o = vll/speed   ! Record the current pitch.
-            CALL gauss_rand(1,zeta)  ! A random from a standard normal (1,1)
-            sigma = sqrt( ABS((one-zeta_o*zeta_o)*speed_cube) ) ! The standard deviation.
-            zeta_mean = zeta_o *(one - speed_cube )  ! The new mean in the distribution.
-            zeta = zeta*sigma + zeta_mean  ! The new pitch angle.
-            !!!The pitch angle MUST NOT go outside [-1,1] nor be NaN; but could happen accidentally with the distribution.
-            zeta = MIN(MAX(zeta,-0.99999D+00),0.99999D+00)
+            zeta = vll/speed
+            CALL scatter_pitch(zeta,dhh)
             !Flip gaussian at boundary to prevent accumulation around pitch=1
             !zeta=zeta-SIGN(one,zeta)*MAX((ABS(zeta)-0.999D+00),zero)
             !Pitch angle scattering according to NUBEAM
@@ -567,7 +512,7 @@ MODULE beams3d_physics_mod
                           vc3_tauinv, vbeta, zeff_temp, br_temp, bphi_temp, bz_temp, vperp, &
                           sm,omega2,vrel2,bmax,bmincl,bminqu,bmin, binv
          DOUBLE PRECISION :: Ebench  ! for ASCOT Benchmark
-         DOUBLE PRECISION :: slow_par(3), ni_temp(NION)
+         DOUBLE PRECISION :: ni_temp(NION), dpar, drift, dhh, dpar_e, drift_e
          ! For splines
          INTEGER :: i,j,k, l
          REAL*8 :: xparam, yparam, zparam
@@ -681,14 +626,8 @@ MODULE beams3d_physics_mod
             !     te in eV and ne in cm^-3
             !-----------------------------------------------------------
             IF ((te_temp > te_col_min).and.(ne_temp > 0)) THEN
-#if defined(B3D_COLLOP_NUBEAM)
-               slow_par = coll_op_nubeam(ne_temp,ni_temp,te_temp,ti_temp,vbeta,Zeff_temp,modb,speed)
-#else
-               slow_par = coll_op_nrl19(ne_temp,te_temp,vbeta,Zeff_temp)
-#endif
-               vcrit_cube = slow_par(1)*slow_par(1)*slow_par(1)
-               tau_spit_inv = one/slow_par(2)
-               vc3_tauinv = vcrit_cube*tau_spit_inv
+               CALL local_coulomb_rates(speed,ne_temp,te_temp,ni_temp,ti_temp, &
+                                        dpar,drift,dhh,dpar_e,drift_e)
             ELSE 
                q(4)   = q(4) + vll*br_temp
                q(5)   = q(5) + vll*bphi_temp + omeg_temp*r_temp
@@ -704,8 +643,11 @@ MODULE beams3d_physics_mod
             !     newspeed  New total speed
             !     vfrac     Ratio between new and old speed (helper)
             !-----------------------------------------------------------
-            CALL collision_speed_step(speed,te_temp,ti_temp,tau_spit_inv,vc3_tauinv,reduction,de_e,de_i)
-            newspeed = speed - reduction
+            CALL gauss_rand(1,zeta)  ! A random from a standard normal (1,1)
+            newspeed = speed + drift*dt + SQRT(2*dpar*dt)*zeta
+            ! Mean energy given to electrons and to ions over dt
+            de_e = -mymass*(speed*drift_e + dpar_e)*dt
+            de_i = -mymass*(speed*(drift - drift_e) + dpar - dpar_e)*dt
             vfrac = newspeed/speed
 
             !-----------------------------------------------------------
@@ -739,14 +681,8 @@ MODULE beams3d_physics_mod
             !------------------------------------------------------------
             !  Pitch Angle Scattering
             !------------------------------------------------------------
-            speed_cube = vc3_tauinv*slow_par(3)*dt/(speed*speed*speed) ! redefine as inverse
-            zeta_o = vll/speed   ! Record the current pitch.
-            CALL gauss_rand(1,zeta)  ! A random from a standard normal (1,1)
-            sigma = sqrt( ABS((1.0D0-zeta_o*zeta_o)*speed_cube) ) ! The standard deviation.
-            zeta_mean = zeta_o *(1.0D0 - speed_cube )  ! The new mean in the distribution.
-            zeta = zeta*sigma + zeta_mean  ! The new pitch angle.
-            !!!The pitch angle MUST NOT go outside [-1,1] nor be NaN; but could happen accidentally with the distribution.
-            zeta = MIN(MAX(zeta,-0.999D+00),0.999D+00)
+            zeta = vll/speed
+            CALL scatter_pitch(zeta,dhh)
             vll = zeta*speed
 
             !------------------------------------------------------------

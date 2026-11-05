@@ -118,7 +118,7 @@ SUBROUTINE beams3d_follow_gc
                     IF (t_nag>t_end(l)) CYCLE
                     ! Particle indicies
                     myline = l
-                    mytdex = 1; ndt = 1
+                    mytdex = 1; ndt = 0
                     IF (lbeam) mytdex = 3
                     ! Don't do full_orbit particles
                     IF (sqrt(S_lines(mytdex-1,l))>rho_fullorbit) CYCLE
@@ -152,7 +152,7 @@ SUBROUTINE beams3d_follow_gc
                     ! Now calc dt
                     CALL beams3d_calc_dt(1,q(1),q(2),q(3),dt)
                     tf_nag = t_nag+dt
-                    ndt = 1
+                    ndt = 0
                     DO ! Must do it this way becasue lbeam changes q(4) values
 #if defined(NAG)
                        CALL D02CJF(t_nag,tf_nag,neqs_nag,q,fgc_eom,tol_nag,relab,out_beams3d_gc,D02CJW,w,ier)
@@ -160,7 +160,7 @@ SUBROUTINE beams3d_follow_gc
                        IF (ier < 0) CALL handle_err(D02CJF_ERR, 'beams3d_follow', ier)
                        t_last(l) = tf_nag ! Save the value here in case out_beams3d changes it
                        CALL out_beams3d_gc(tf_nag,q)
-                       IF (ABS(tf_nag) > ABS(my_end)) EXIT
+                       IF (ABS(tf_nag) > ABS(my_end)+0.5D0*ABS(dt)) EXIT
                     END DO
                 END DO
             CASE ("RKH68")
@@ -171,7 +171,7 @@ SUBROUTINE beams3d_follow_gc
                     IF (tf_nag>t_end(l)) CYCLE
                     ! Particle indicies
                     myline = l
-                    mytdex = 1; ndt = 1
+                    mytdex = 1; ndt = 0
                     IF (lbeam) mytdex = 3
                     ! Don't do full_orbit particles
                     IF (sqrt(S_lines(mytdex-1,l))>rho_fullorbit) CYCLE
@@ -206,7 +206,7 @@ SUBROUTINE beams3d_follow_gc
                     ! Now calc dt
                     CALL beams3d_calc_dt(1,q(1),q(2),q(3),dt)
                     tf_nag = t_nag+dt
-                    ndt = 1
+                    ndt = 0
                     ! Setup DRKHVG parameters
                     iopt = 0
                     DO
@@ -218,7 +218,7 @@ SUBROUTINE beams3d_follow_gc
                         t_nag = tf_nag
                         t_last(l) = tf_nag ! Save the value here in case out_beams3d changes it
                         CALL out_beams3d_gc(tf_nag,q)
-                        IF (ABS(tf_nag) > ABS(my_end)) EXIT
+                        IF (ABS(tf_nag) > ABS(my_end)+0.5D0*ABS(dt)) EXIT
                     END DO
                 END DO
             CASE ("LSODE","DLSODE")
@@ -281,7 +281,7 @@ SUBROUTINE beams3d_follow_gc
                     ! Now calc dt
                     CALL beams3d_calc_dt(1,q(1),q(2),q(3),dt)
                     tf_nag = t_nag+dt
-                    ndt = 1
+                    ndt = 0
                     ! Setup LSODE parameters
                     iopt = 0 ! No optional output
                     w = 0; iwork = 0; itask = 1; istate = 1;
@@ -312,7 +312,7 @@ SUBROUTINE beams3d_follow_gc
                         t_last(l) = tf_nag ! Save the value here in case out_beams3d changes it
                         CALL out_beams3d_gc(tf_nag,q)
                         IF ( (istate == -1) .or. (istate ==-2) &
-                                            .or. (ABS(tf_nag) > ABS(my_end)) &
+                                            .or. (ABS(tf_nag) > ABS(my_end)+0.5D0*ABS(dt)) &
                                             .or. (rho_help > rho_fullorbit)) EXIT
                     END DO
                 END DO

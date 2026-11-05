@@ -166,7 +166,7 @@ SUBROUTINE beams3d_follow_fo
                     ! Now calc dt (also sets ndt_max, the output cadence)
                     CALL beams3d_calc_dt(2,q(1),q(2),q(3),dt)
                     tf_nag = t_nag+dt
-                    ndt = 1
+                    ndt = 0
                     DO ! Must do it this way becasue lbeam changes q(4) values
 #if defined(NAG)
                        CALL D02CJF(t_nag,tf_nag,neqs_nag,q,fpart_eom,tol_nag,relab,out_beams3d_part,D02CJW,w,ier)
@@ -174,7 +174,7 @@ SUBROUTINE beams3d_follow_fo
                        IF (ier < 0) CALL handle_err(D02CJF_ERR, 'beams3d_follow', ier)
                        t_last(l) = tf_nag ! Save the value here in case out_beams3d changes it
                        CALL out_beams3d_part(tf_nag,q)
-                       IF (ABS(tf_nag) > ABS(my_end)) EXIT
+                       IF (ABS(tf_nag) > ABS(my_end)+0.5D0*ABS(dt)) EXIT
                     END DO
                 END DO
             CASE ("RKH68")
@@ -227,7 +227,7 @@ SUBROUTINE beams3d_follow_fo
                     ! Now calc dt (also sets ndt_max, the output cadence)
                     CALL beams3d_calc_dt(2,q(1),q(2),q(3),dt)
                     tf_nag = t_nag+dt
-                    ndt = 1
+                    ndt = 0
                     ! Setup DRKHVG parameters
                     iopt = 0
                     DO
@@ -241,7 +241,7 @@ SUBROUTINE beams3d_follow_fo
                         t_nag = tf_nag
                         t_last(l) = tf_nag ! Save the value here in case out_beams3d changes it
                         CALL out_beams3d_part(tf_nag,q)
-                        IF (ABS(tf_nag) > ABS(my_end)) EXIT
+                        IF (ABS(tf_nag) > ABS(my_end)+0.5D0*ABS(dt)) EXIT
                     END DO
                 END DO
             CASE ("LSODE","DLSODE")
@@ -311,7 +311,7 @@ SUBROUTINE beams3d_follow_fo
                     ! Now calc dt
                     CALL beams3d_calc_dt(2,q(1),q(2),q(3),dt)
                     tf_nag = t_nag+dt
-                    ndt = 1
+                    ndt = 0
                     ! Setup LSODE parameters
                     iopt = 0 ! No optional output
                     w = 0; iwork = 0; itask = 1; istate = 1;
@@ -341,7 +341,7 @@ SUBROUTINE beams3d_follow_fo
                         iwork(11) = 0; iwork(12) = 0; iwork(13) = 0
                         t_last(l) = tf_nag ! Save the value here in case out_beams3d changes it
                         CALL out_beams3d_part(tf_nag,q)
-                        IF ((istate == -1) .or. (istate ==-2) .or. (ABS(tf_nag) > ABS(my_end)) ) EXIT
+                        IF ((istate == -1) .or. (istate ==-2) .or. (ABS(tf_nag) > ABS(my_end)+0.5D0*ABS(dt)) ) EXIT
                     END DO
                 END DO
                 IF (ldebug) CLOSE(iunit)

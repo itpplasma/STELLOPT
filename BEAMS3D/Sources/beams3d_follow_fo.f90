@@ -174,7 +174,7 @@ SUBROUTINE beams3d_follow_fo
                        IF (ier < 0) CALL handle_err(D02CJF_ERR, 'beams3d_follow', ier)
                        t_last(l) = tf_nag ! Save the value here in case out_beams3d changes it
                        CALL out_beams3d_part(tf_nag,q)
-                       IF (ABS(tf_nag) > ABS(my_end)) EXIT
+                       IF (ABS(tf_nag) > ABS(my_end)+0.5D0*ABS(dt)) EXIT
                     END DO
                 END DO
             CASE ("RKH68")
@@ -241,7 +241,7 @@ SUBROUTINE beams3d_follow_fo
                         t_nag = tf_nag
                         t_last(l) = tf_nag ! Save the value here in case out_beams3d changes it
                         CALL out_beams3d_part(tf_nag,q)
-                        IF (ABS(tf_nag) > ABS(my_end)) EXIT
+                        IF (ABS(tf_nag) > ABS(my_end)+0.5D0*ABS(dt)) EXIT
                     END DO
                 END DO
             CASE ("LSODE","DLSODE")
@@ -341,7 +341,7 @@ SUBROUTINE beams3d_follow_fo
                         iwork(11) = 0; iwork(12) = 0; iwork(13) = 0
                         t_last(l) = tf_nag ! Save the value here in case out_beams3d changes it
                         CALL out_beams3d_part(tf_nag,q)
-                        IF ((istate == -1) .or. (istate ==-2) .or. (ABS(tf_nag) > ABS(my_end)) ) EXIT
+                        IF ((istate == -1) .or. (istate ==-2) .or. (ABS(tf_nag) > ABS(my_end)+0.5D0*ABS(dt)) ) EXIT
                     END DO
                 END DO
                 IF (ldebug) CLOSE(iunit)

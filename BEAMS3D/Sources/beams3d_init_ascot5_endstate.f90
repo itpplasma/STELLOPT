@@ -31,8 +31,8 @@
       REAL(rprec), DIMENSION(:), ALLOCATABLE :: temp2,br_temp,bphi_temp,bz_temp
       CHARACTER(10)  :: marker_id
       INTEGER :: MPI_COMM_LOCAL
-      DOUBLE PRECISION, PARAMETER :: dalton    = 1.66053906892E-27 ! AMU [kg]
-      DOUBLE PRECISION, PARAMETER :: e_charge  = 1.60217662E-19    ![C]
+      DOUBLE PRECISION, PARAMETER :: dalton    = 1.66053906660D-27 ! AMU [kg]
+      DOUBLE PRECISION, PARAMETER :: e_charge  = 1.602176634D-19    ![C]
 !-----------------------------------------------------------------------
 !     Begin Subroutine
 !-----------------------------------------------------------------------

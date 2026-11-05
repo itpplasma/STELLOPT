@@ -55,9 +55,9 @@
       CHARACTER(LEN=10) ::  qid_str
       CHARACTER(LEN=8) :: temp_str8
 
-      DOUBLE PRECISION, PARAMETER :: ascot4_pi      = 3.141592653589793238462643383280
-      DOUBLE PRECISION, PARAMETER :: e_charge      = 1.60217662E-19 !e_c
-      DOUBLE PRECISION, PARAMETER :: inv_amu       = 6.02214076208E+26 ! 1./AMU [1/kg]
+      DOUBLE PRECISION, PARAMETER :: ascot4_pi      = 3.141592653589793D0
+      DOUBLE PRECISION, PARAMETER :: e_charge      = 1.602176634D-19 !e_c
+      DOUBLE PRECISION, PARAMETER :: inv_amu       = 6.02214076208D+26 ! 1./AMU [1/kg]
 !-----------------------------------------------------------------------
 !     Begin Subroutine
 !-----------------------------------------------------------------------

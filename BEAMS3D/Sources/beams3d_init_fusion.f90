@@ -61,7 +61,7 @@
       DOUBLE PRECISION, POINTER, DIMENSION(:,:,:) :: rateDT, rateDDT, rateDDHe, rateDHe3
 
       REAL(rprec),      PARAMETER :: S_LIM_MAX = 0.90 ! Max S if lplasma_only
-      DOUBLE PRECISION, PARAMETER :: e_charge  = 1.60217662E-19 !e_c
+      DOUBLE PRECISION, PARAMETER :: e_charge  = 1.602176634D-19 !e_c
       DOUBLE PRECISION, PARAMETER :: mHe4      = 6.6464731D-27
       DOUBLE PRECISION, PARAMETER :: mT        = 5.0082671D-27
       DOUBLE PRECISION, PARAMETER :: mp        = 1.6726219D-27

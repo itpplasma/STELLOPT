@@ -132,7 +132,7 @@ SUBROUTINE beams3d_write_fidasim(write_type)
    CHARACTER(LEN=8) :: temp_str8
 
    INTEGER, parameter :: ict(8)=(/1,0,0,0,0,0,0,0/), ictE(8)=(/0,1,1,1,0,0,0,0/)
-   DOUBLE PRECISION, PARAMETER :: e_charge      = 1.602176565e-19 !e_c
+   DOUBLE PRECISION, PARAMETER :: e_charge      = 1.602176634D-19 !e_c
    DOUBLE PRECISION, PARAMETER :: zero          = 0.0D0 ! 0.0
    DOUBLE PRECISION, PARAMETER :: t_min          = 1.0D-3 !
 
@@ -820,7 +820,7 @@ SUBROUTINE write_fidasim_equilibrium
         CHARACTER(LEN=8) :: temp_str8
 
         INTEGER, parameter :: ict(8)=(/1,0,0,0,0,0,0,0/), ictE(8)=(/0,1,1,1,0,0,0,0/)
-        DOUBLE PRECISION, PARAMETER :: e_charge      = 1.602176565e-19 !e_c
+        DOUBLE PRECISION, PARAMETER :: e_charge      = 1.602176634D-19 !e_c
         DOUBLE PRECISION, PARAMETER :: zero          = 0.0D0 ! 0.0
         DOUBLE PRECISION, PARAMETER :: t_min          = 1.0D-3 !        
         !--------------------------------------------------------------

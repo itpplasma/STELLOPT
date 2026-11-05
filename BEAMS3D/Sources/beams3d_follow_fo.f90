@@ -166,7 +166,7 @@ SUBROUTINE beams3d_follow_fo
                     ! Now calc dt (also sets ndt_max, the output cadence)
                     CALL beams3d_calc_dt(2,q(1),q(2),q(3),dt)
                     tf_nag = t_nag+dt
-                    ndt = 1
+                    ndt = 0
                     DO ! Must do it this way becasue lbeam changes q(4) values
 #if defined(NAG)
                        CALL D02CJF(t_nag,tf_nag,neqs_nag,q,fpart_eom,tol_nag,relab,out_beams3d_part,D02CJW,w,ier)
@@ -227,7 +227,7 @@ SUBROUTINE beams3d_follow_fo
                     ! Now calc dt (also sets ndt_max, the output cadence)
                     CALL beams3d_calc_dt(2,q(1),q(2),q(3),dt)
                     tf_nag = t_nag+dt
-                    ndt = 1
+                    ndt = 0
                     ! Setup DRKHVG parameters
                     iopt = 0
                     DO
@@ -311,7 +311,7 @@ SUBROUTINE beams3d_follow_fo
                     ! Now calc dt
                     CALL beams3d_calc_dt(2,q(1),q(2),q(3),dt)
                     tf_nag = t_nag+dt
-                    ndt = 1
+                    ndt = 0
                     ! Setup LSODE parameters
                     iopt = 0 ! No optional output
                     w = 0; iwork = 0; itask = 1; istate = 1;

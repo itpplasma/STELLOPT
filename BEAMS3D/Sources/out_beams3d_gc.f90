@@ -271,7 +271,7 @@ SUBROUTINE out_beams3d_gc(t, q)
     ndt = ndt + 1
     IF (ndt .ge. ndt_max) THEN ! ge needed if npoinc = ndt
        mytdex = mytdex + 1
-       ndt = 1
+       ndt = 0 ! ndt counts the steps since the last stored point
     END IF
     IF (lhitonly) mytdex = 1
     IF (mytdex > npoinc) t = my_end

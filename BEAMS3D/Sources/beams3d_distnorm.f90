@@ -117,6 +117,12 @@
          dist5d_prof(:,i,j,k,:,:) = dist5d_prof(:,i,j,k,:,:)/dvol
       END DO
 
+      ! The master rescales the whole shared array; every rank must have
+      ! finished its slice first.
+#if defined(MPI_OPT)
+      CALL MPI_BARRIER(MPI_COMM_LOCAL,ierr_mpi)
+#endif
+
       IF (myworkid == master) THEN
          ! Constants moved here
          ! Factor 4 from average of rt

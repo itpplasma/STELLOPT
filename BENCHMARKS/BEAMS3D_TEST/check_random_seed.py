@@ -49,8 +49,8 @@ def main():
     assert first.keys() == second.keys()
     differ = [name for name in first if name != "dist_prof"
               and not np.array_equal(first[name], second[name])]
-    # Ranks add to the shared distribution without a lock, so the order of
-    # the sums, and with it the last bits, varies between runs.
+    # Ranks add to the shared distribution under a lock in whatever order
+    # they reach it, so the last bits of each sum vary between runs.
     scale = np.max(np.abs(first["dist_prof"]))
     if not np.allclose(first["dist_prof"], second["dist_prof"],
                        rtol=0.0, atol=1.0e-12*scale):

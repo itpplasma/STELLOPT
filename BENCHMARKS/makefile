@@ -38,7 +38,7 @@ test_beams3d_coulomb_log:
 
 test_beams3d_profile_limits:
 	$(MPI_COMPILE_FREE) $(FLAGS_R) -I$(LIB_DIR) $(BEAMS3D_TEST_DIR)/test_profile_limits.f90 $(LIB_DIR)/libstell$(STATIC_EXT) $(LIB_LINK) -o $(BEAMS3D_TEST_DIR)/test_profile_limits.x
-	cd $(BEAMS3D_TEST_DIR); $(MPI_RUN) $(MPI_RUN_OPTS_SM) ./test_profile_limits.x
+	cd $(BEAMS3D_TEST_DIR); ./test_profile_limits.x
 
 test_beams3d:
 	@echo "Beginning testing of BEAMS3D"

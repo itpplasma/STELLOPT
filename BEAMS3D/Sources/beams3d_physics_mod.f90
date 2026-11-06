@@ -390,7 +390,7 @@ MODULE beams3d_physics_mod
             !  Calculate Coulomb Logarithm
             !     te in eV and ne in cm^-3
             !-----------------------------------------------------------
-            IF ((te_temp > te_col_min).and.(ti_temp > te_col_min).and.(ne_temp > 0)) THEN
+            IF ((te_temp > te_col_min).and.(ti_temp > zero).and.(ne_temp > 0)) THEN
                CALL local_coulomb_rates(speed,ne_temp,te_temp,ni_temp,ti_temp, &
                                         dpar,drift,dhh,dpar_e,drift_e)
             ELSE !Dont evaluate collisions
@@ -626,7 +626,7 @@ MODULE beams3d_physics_mod
             !  Calculate Coulomb Logarithm
             !     te in eV and ne in cm^-3
             !-----------------------------------------------------------
-            IF ((te_temp > te_col_min).and.(ti_temp > te_col_min).and.(ne_temp > 0)) THEN
+            IF ((te_temp > te_col_min).and.(ti_temp > zero).and.(ne_temp > 0)) THEN
                CALL local_coulomb_rates(speed,ne_temp,te_temp,ni_temp,ti_temp, &
                                         dpar,drift,dhh,dpar_e,drift_e)
             ELSE 

@@ -23,7 +23,9 @@
       DOUBLE PRECISION, PRIVATE, PARAMETER :: &
                               inv_dalton      = 6.02214076208E+26 ! 1./AMU [1/kg]
       DOUBLE PRECISION, PRIVATE, PARAMETER :: &
-                              hbar            = 1.054571817E+34 ! hbar [J.s]
+                              hbar            = 1.054571817D-34 ! hbar [J.s]
+      DOUBLE PRECISION, PRIVATE, PARAMETER :: &
+                              four_pi_eps0    = 1.11265005620D-10 ! 4 pi eps_0 [F/m]
       DOUBLE PRECISION, PRIVATE :: coulomb_factor, fact_crit, &
                                    fact_crit_weiland
       
@@ -184,7 +186,7 @@
          DOUBLE PRECISION :: rmina,rminb
          rmina   =  1.0 / mass2 + 1.0 / mass1
          rminb   =  0.5 * hbar * rmina / u
-         rmina   =  rmina*electron_charge*electron_charge*Z1*Z2/( u * u )
+         rmina   =  rmina*electron_charge*electron_charge*ABS(Z1*Z2)/( four_pi_eps0 * u * u )
          result  = LOG( LD / MAX(rmina,rminb) )
       END FUNCTION COULOMB_LOG_NRL_GENERAL
 

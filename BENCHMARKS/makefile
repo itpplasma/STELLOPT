@@ -19,7 +19,7 @@
   MPI_RUN_OPTS_MD ?= $(MPI_RUN_OPTS)
   MPI_RUN_OPTS_LG ?= $(MPI_RUN_OPTS)
 
-.PHONY: test_indexing test_vmec test_beams3d_wall test_beams3d_wall_planar
+.PHONY: test_indexing test_vmec test_beams3d_wall test_beams3d_wall_planar test_beams3d_coulomb_log test_beams3d_profile_limits
 
 test_indexing:
 	python3 -m unittest discover -s tests -v
@@ -32,11 +32,21 @@ test_beams3d_wall_planar:
 	$(MPI_COMPILE_FREE) $(FLAGS_R) -I$(LIB_DIR) $(BEAMS3D_TEST_DIR)/test_wall_planar.f90 $(LIB_DIR)/libstell$(STATIC_EXT) -o $(BEAMS3D_TEST_DIR)/test_wall_planar.x
 	cd $(BEAMS3D_TEST_DIR); $(MPI_RUN) $(MPI_RUN_OPTS_SM) ./test_wall_planar.x
 
+test_beams3d_coulomb_log:
+	$(MPI_COMPILE_FREE) $(FLAGS_R) -I$(LIB_DIR) $(BEAMS3D_TEST_DIR)/test_coulomb_log_general.f90 $(LIB_DIR)/libstell$(STATIC_EXT) -o $(BEAMS3D_TEST_DIR)/test_coulomb_log_general.x
+	cd $(BEAMS3D_TEST_DIR); ./test_coulomb_log_general.x
+
+test_beams3d_profile_limits:
+	$(MPI_COMPILE_FREE) $(FLAGS_R) -I$(LIB_DIR) $(BEAMS3D_TEST_DIR)/test_profile_limits.f90 $(LIB_DIR)/libstell$(STATIC_EXT) -o $(BEAMS3D_TEST_DIR)/test_profile_limits.x
+	cd $(BEAMS3D_TEST_DIR); $(MPI_RUN) $(MPI_RUN_OPTS_SM) ./test_profile_limits.x
+
 test_beams3d:
 	@echo "Beginning testing of BEAMS3D"
 	$(MAKE) test_beams3d_gyroradius
 	$(MAKE) test_beams3d_wall
 	$(MAKE) test_beams3d_wall_planar
+	$(MAKE) test_beams3d_coulomb_log
+	$(MAKE) test_beams3d_profile_limits
 	$(MAKE) test_beams3d_basic
 	$(MAKE) test_beams3d_er
 	$(MAKE) test_beams3d_loss

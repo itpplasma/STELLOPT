@@ -166,6 +166,7 @@ if __name__=="__main__":
         # 40 markers: the radial profiles are Monte Carlo noise bin by bin,
         # so only their totals are compared. The ion total scatters by about
         # 3 % between runs (Ti = 100 eV, set by the few slowest markers).
+        # Reference: mean of six builds with markers followed to T_END (#46).
         data['epower_total']=np.sum(b3d.epower_prof[0,:])*1.0E20 # factor to make values visible in output.
         data['ipower_total']=np.sum(b3d.ipower_prof[0,:])*1.0E20
         tols['ipower_total'] = 15.0

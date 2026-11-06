@@ -386,7 +386,7 @@
          DO ik = 1, MAXPROFLEN
             IF (TI_AUX_S(ik) >= 0.0) nti = nti+1
          END DO
-         IF (nti > 0) s_max_ti = NE_AUX_S(nti)
+         IF (nti > 0) s_max_ti = TI_AUX_S(nti)
          nzeff = 0
          DO ik = 1, MAXPROFLEN
             IF (ZEFF_AUX_S(ik) >= 0.0) nzeff = nzeff+1

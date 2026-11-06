@@ -5,6 +5,7 @@ program test_coulomb_rates
     ! zero-flux condition of a Maxwellian at equal temperatures. The NRL
     ! rates assume a constant logarithm; with ln(Lambda(v)) the zero-flux
     ! drift carries the extra term v D dln(Lambda)/dv.
+    use, intrinsic :: ieee_arithmetic, only: ieee_is_nan
     use beams3d_physics_mod, only: coulomb_rates
     implicit none
     integer, parameter :: dp = kind(1.0d0), ns = 3
@@ -56,6 +57,11 @@ program test_coulomb_rates
         if (abs(drift - expected) > 1.0d-6*abs(drift)) &
             error stop 'Speed operator does not preserve the Maxwellian'
     end do
+    ! Interpolated profiles can reach zero temperature at a steep edge.
+    tb(2:) = 0.0_dp
+    call coulomb_rates(ma, qa, vth, ns, nb, tb, mb, zb, dpar, drift, dhh, dpe, dre)
+    if (any(ieee_is_nan([dpar, drift, dhh, dpe, dre]))) &
+        error stop 'Rates are not finite at zero ion temperature'
     print '(a)', 'PASS: BEAMS3D Coulomb rates'
 
 contains

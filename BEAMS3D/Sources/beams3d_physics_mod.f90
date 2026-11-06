@@ -170,6 +170,8 @@ MODULE beams3d_physics_mod
          DOUBLE PRECISION, PARAMETER :: two_sqrtpi = 1.1283791670955126D0
          DOUBLE PRECISION, PARAMETER :: pi_d = 3.141592653589793D0
          dpar = zero; drift = zero; dhh = zero; dpar_e = zero; drift_e = zero
+         ! The rates divide by every populated species' temperature.
+         IF (ANY(nb > zero .and. zb /= zero .and. tb <= zero)) RETURN
          debye2_inv = zero
          DO b = 1, nspec
             IF (nb(b) > zero .and. zb(b) /= zero) debye2_inv = debye2_inv &
@@ -388,7 +390,7 @@ MODULE beams3d_physics_mod
             !  Calculate Coulomb Logarithm
             !     te in eV and ne in cm^-3
             !-----------------------------------------------------------
-            IF ((te_temp > te_col_min).and.(ne_temp > 0)) THEN
+            IF ((te_temp > te_col_min).and.(ti_temp > te_col_min).and.(ne_temp > 0)) THEN
                CALL local_coulomb_rates(speed,ne_temp,te_temp,ni_temp,ti_temp, &
                                         dpar,drift,dhh,dpar_e,drift_e)
             ELSE !Dont evaluate collisions
@@ -624,7 +626,7 @@ MODULE beams3d_physics_mod
             !  Calculate Coulomb Logarithm
             !     te in eV and ne in cm^-3
             !-----------------------------------------------------------
-            IF ((te_temp > te_col_min).and.(ne_temp > 0)) THEN
+            IF ((te_temp > te_col_min).and.(ti_temp > te_col_min).and.(ne_temp > 0)) THEN
                CALL local_coulomb_rates(speed,ne_temp,te_temp,ni_temp,ti_temp, &
                                         dpar,drift,dhh,dpar_e,drift_e)
             ELSE 

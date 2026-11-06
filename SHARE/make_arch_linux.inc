@@ -9,7 +9,7 @@
 #######################################################################
   SHELL ?= /bin/sh
   PWD1 = `pwd`
-  MYHOME = $(HOME)/bin
+  MYHOME ?= $(HOME)/bin
   PRECOMP:= /usr/bin/cpp -traditional -DLINUX
   COMPILE = $(FC)
   COMPILE_FREE = $(FC) -ffree-form -ffree-line-length-none -ffixed-line-length-none

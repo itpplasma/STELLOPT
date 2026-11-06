@@ -15,6 +15,9 @@ MOD_PATH =
 CLEAN_ARCH = 
 LIB_DIR = $(STELLOPT_PATH)/LIBSTELL
 LIB = libstell$(STATIC_EXT)
+# Codes list LIBSTELL objects as prerequisites; they are made by the
+# library build, which a parallel make must finish first.
+../../LIBSTELL/$(LOCTYPE)/%.o : $(LIB) ;
 
 # Handle third party code dependencies
 ifeq ($(LSFINCS),T)

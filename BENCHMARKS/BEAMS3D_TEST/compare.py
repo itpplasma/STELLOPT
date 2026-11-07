@@ -191,6 +191,7 @@ if __name__=="__main__":
         # and Sigmar ch. 3) with the speed-dependent logarithm
         # ln(lambda_D/max(b_cl, b_qm)) at vbar^2 = v^2 + 2T/m, to second order:
         # dm/dt = K + K''V/2, dV/dt = 2K'V + 2D, with K = Q + D' + 2D/v.
+        assert np.all(b3d.end_state == 0), 'Speed moments need every marker followed to T_END'
         from math import erf
         ec = 1.602176634E-19; me = 9.1093837139E-31; eps0 = 8.8541878128E-12
         hbar = 1.054571817E-34

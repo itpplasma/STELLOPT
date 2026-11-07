@@ -59,6 +59,7 @@ RBC(  0,  1) =  1.0000000000e+00  ZBS(  0,  1) =  1.0000000000e+00
   ZATOM_IN = 4096*1.0
   T_END_IN = 4096*2.0E-3
   NPOINC = 20
+  THERM_FACTOR = 0.0 ! the speed moments need every marker to T_END
   NE_AUX_S =     0.0     0.2     0.4     0.6     0.8     1.0
   NE_AUX_F =  6*5.0E19
   TE_AUX_S =     0.0     0.2     0.4     0.6     0.8     1.0

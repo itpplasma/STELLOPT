@@ -1620,227 +1620,134 @@
       ! param[in, out]: comm. MPI communicator, handles communication between nodes
       ! param[in, out]: shar_comm. Shared MPI communicator, handles shared memory
       !-----------------------------------------------------------------------
+      ! A face belongs to every block whose box, widened by epsilon, overlaps
+      ! the face's bounding box. The triangle lies inside its bounding box, so
+      ! every block it touches holds it; collide_double only accepts hits
+      ! inside the current block, so extra members never change a hit.
+      ! Each face visits only the blocks its bounding box spans, instead of
+      ! testing all faces against all blocks.
          INTEGER, OPTIONAL :: istat
          INTEGER, INTENT(inout), OPTIONAL :: comm, shar_comm
-         ! Whether or not shared memory is used
          LOGICAL :: shared, lcomm
-         ! Integer for shared memory
-         INTEGER :: win_counter_arr, win_mask_face
-
-         ! Integer array that counters number of faces in each block 
+         INTEGER :: win_counter_arr
          INTEGER, POINTER :: counter_arr(:)
-         ! Integer array that determines how to split blocks over threads. Only used with MPI
          INTEGER, POINTER :: mysplit(:)
-         ! Block bounds
-         DOUBLE PRECISION :: rmin(3), rmax(3)
-         ! Masks if vertex in block or face already in block
-         LOGICAL, POINTER :: mask_face(:,:), mask(:)
-         ! Loop integers and counter
-         INTEGER :: i, j, k, counter
+         INTEGER, ALLOCATABLE :: fillpos(:)
+         INTEGER :: i, j, k, counter, pass
+         INTEGER :: lo(3), hi(3), xi, yi, zi
+         DOUBLE PRECISION :: fmin(3), fmax(3)
 
-         ! By Sam
-         INTEGER :: win_A1, win_A2
-         DOUBLE PRECISION, POINTER :: A1(:,:), A2(:,:)
-         
-         ! Comm logit
          lcomm = .FALSE.
 #if defined(MPI_OPT)
          IF (PRESENT(comm)) lcomm = .TRUE.
 #endif
+         IF (PRESENT(istat)) istat = 0
 
-         ! Split blocks between threads
-         ! Also allocate counter_arr
+         ! Disjoint block ranges, because the first pass increments counts.
          IF (lcomm) THEN
             shared = .TRUE.
             mydelta = CEILING(REAL(wall%nblocks) / REAL(shar_size))
             mystart = 1 + shar_rank*mydelta
-            myend   = mystart + mydelta
-            IF (myend > wall%nblocks) myend=wall%nblocks
+            myend   = MIN(mystart + mydelta - 1, wall%nblocks)
             CALL mpialloc_1d_int(counter_arr, wall%nblocks, shar_rank, 0, shar_comm, win_counter_arr)
-            CALL mpialloc_2d_dbl(A1, nface, 3, shar_rank, 0, shar_comm, win_A1)
-            CALL mpialloc_2d_dbl(A2, nface, 3, shar_rank, 0, shar_comm, win_A2)
          ELSE
             shared = .FALSE.
             mystart = 1; myend = wall%nblocks
             ALLOCATE(counter_arr(wall%nblocks))
-            ALLOCATE(A1(nface,3),A2(nface,3))
          END IF
-
-         counter_arr = 0
-         ALLOCATE(mask_face(nface,3), STAT=istat)
-         ALLOCATE(mask(nface), STAT=istat)
-
-         ! Helper for vertices per face
-         IF (shar_rank == 0) THEN
-            A1 = V0+A0
-            A2 = V1+A0
-         END IF
-
+         IF (.not. lcomm .or. shar_rank == 0) counter_arr = 0
 #if defined(MPI_OPT)
          IF (lcomm) CALL MPI_BARRIER(shar_comm,istat)
 #endif
+         ALLOCATE(fillpos(wall%nblocks))
 
-         ! Find how many vertices in each block
-         IF (shar_rank == 0 .and. ldebug) WRITE(6, *) 'Filling blocks: Finding the number of vertices in each block'
-         DO i=mystart, myend
-            ! Define bounds block
-            rmin = wall%blocks(i)%rmin - epsilon
-            rmax = wall%blocks(i)%rmax + epsilon
-
-            ! Extend the domain to include the neighbors (SAL)
-            !rmin = rmin - (rmax - rmin)*0.25
-            !rmax = rmax + (rmax - rmin)*0.25
-
-            ! Check vertices in block
-            mask_face(:,:) = .FALSE.
-
-
-            !mask_face(:,1) = (A0(:,1) < rmax(1) .and. A0(:,1) >= rmin(1) &
-            !   .and. A0(:,2) < rmax(2) .and. A0(:,2) >= rmin(2) &
-            !   .and. A0(:,3) < rmax(3) .and. A0(:,3) >= rmin(3))
-            !mask_face(:,2) = (A1(:,1) < rmax(1) .and. A1(:,1) >= rmin(1) &
-            !   .and. A1(:,2) < rmax(2) .and. A1(:,2) >= rmin(2) &
-            !   .and. A1(:,3) < rmax(3) .and. A1(:,3) >= rmin(3))
-            !mask_face(:,3) = (A2(:,1) < rmax(1) .and. A2(:,1) >= rmin(1) &
-            !   .and. A2(:,2) < rmax(2) .and. A2(:,2) >= rmin(2) &
-            !   .and. A2(:,3) < rmax(3) .and. A2(:,3) >= rmin(3))
-
-            ! Could probably vectorize
-            DO j = 1,nface
-               CALL LINE_BOX_INTERSECTION(A0(j,1),A0(j,2),A0(j,3), &
-                  A1(j,1),A1(j,2),A1(j,3),rmin(1),rmin(2),rmin(3),&
-                  rmax(1),rmax(2),rmax(3),mask_face(j,1))
-               CALL LINE_BOX_INTERSECTION(A1(j,1),A1(j,2),A1(j,3), &
-                  A2(j,1),A2(j,2),A2(j,3),rmin(1),rmin(2),rmin(3),&
-                  rmax(1),rmax(2),rmax(3),mask_face(j,2))
-               CALL LINE_BOX_INTERSECTION(A2(j,1),A2(j,2),A2(j,3), &
-                  A0(j,1),A0(j,2),A0(j,3),rmin(1),rmin(2),rmin(3),&
-                  rmax(1),rmax(2),rmax(3),mask_face(j,3))
-            END DO
-
-            ! Count found faces
-            mask = ANY(mask_face,2)
-            counter_arr(i) = COUNT(mask)
-         END DO
-
-#if defined(MPI_OPT)
-         IF (lcomm) CALL MPI_BARRIER(shar_comm,istat)
-#endif
-
-         ! Allocate face arrays for each block. Each thread executes this
-         ! Also sets size of block for each thread
-         IF (shar_rank == 0 .and. ldebug) WRITE(6, *) 'Filling blocks: Allocating each block'
-         DO i=1, wall%nblocks
-            IF (counter_arr(i) > 0) THEN
-               IF (lcomm) THEN 
-                  CALL ALLOCATE_BLOCK_FACES(wall%blocks(i), &
-                     counter_arr(i), shar_comm, istat)
-                  IF (istat/=0) RETURN
-               ELSE
-                  ALLOCATE(wall%blocks(i)%face(counter_arr(i)), STAT=istat)
-               END IF
-            END IF
-            wall%blocks(i)%nfaces = counter_arr(i)
-            wall%blocks(i)%isshared = shared
-         END DO
-
-         ! Efficiently divide blocks over threads
-         IF (shar_rank == 0 .and. ldebug) WRITE(6, *) 'Filling blocks: Dividing work'
-         IF (lcomm) THEN
-            ALLOCATE(mysplit(shar_size + 1))
-            DO j=0,100
-               mydelta = CEILING(SUM(counter_arr) / REAL(shar_size) / REAL(100 + j) * 100D+0)
-               mysplit = 0
-               counter = 0
-               k=2
+         DO pass = 1, 2
+            IF (pass == 2) THEN
+               IF (shar_rank == 0 .and. ldebug) WRITE(6, *) 'Filling blocks: Allocating each block'
                DO i=1, wall%nblocks
-                  counter = counter + counter_arr(i)
-                  IF (counter > mydelta) THEN
-                     mysplit(k) = i
-                     k = k + 1
-                     IF (k > shar_size + 1) k = shar_size + 1
+                  IF (counter_arr(i) > 0) THEN
+                     IF (lcomm) THEN
+                        CALL ALLOCATE_BLOCK_FACES(wall%blocks(i), counter_arr(i), shar_comm, istat)
+                        IF (istat/=0) RETURN
+                     ELSE
+                        ALLOCATE(wall%blocks(i)%face(counter_arr(i)), STAT=istat)
+                     END IF
+                  END IF
+                  wall%blocks(i)%nfaces = counter_arr(i)
+                  wall%blocks(i)%isshared = shared
+               END DO
+               ! Balance the filling by face count.
+               IF (lcomm) THEN
+                  ALLOCATE(mysplit(shar_size + 1))
+                  DO j=0,100
+                     mydelta = CEILING(SUM(counter_arr) / REAL(shar_size) / REAL(100 + j) * 100D+0)
+                     mysplit = 0
                      counter = 0
-                  END IF
-               END DO
-               mysplit(k) = wall%nblocks
-               IF (k .eq. shar_size + 1) EXIT
-            END DO
-            mystart = 1 + mysplit(shar_rank + 1)
-            myend   = mysplit(shar_rank + 2)
-            IF (mystart > wall%nblocks .OR. myend .eq. 0) myend=mystart
-            DEALLOCATE(mysplit)
-         ELSE
-            mystart = 1; myend = wall%nblocks
-         END IF
+                     k=2
+                     DO i=1, wall%nblocks
+                        counter = counter + counter_arr(i)
+                        IF (counter > mydelta) THEN
+                           mysplit(k) = i
+                           k = k + 1
+                           IF (k > shar_size + 1) k = shar_size + 1
+                           counter = 0
+                        END IF
+                     END DO
+                     mysplit(k) = wall%nblocks
+                     IF (k .eq. shar_size + 1) EXIT
+                  END DO
+                  mystart = 1 + mysplit(shar_rank + 1)
+                  myend   = mysplit(shar_rank + 2)
+                  DEALLOCATE(mysplit)
+               ELSE
+                  mystart = 1; myend = wall%nblocks
+               END IF
 #if defined(MPI_OPT)
-         IF (lcomm) CALL MPI_BARRIER(shar_comm,istat)
+               IF (lcomm) CALL MPI_BARRIER(shar_comm,istat)
 #endif
+            END IF
 
-         ! Actually assign faces to blocks
-         IF (shar_rank == 0 .and. ldebug) WRITE(6, *) 'Filling blocks: Putting faces in each block'
-         DO i=mystart, myend
-            ! Skip if for some reason out of bounds
-            IF (i > wall%nblocks) EXIT
-            ! Only add if actually faces in the block
-            IF (counter_arr(i) > 0) THEN
-               mask_face = .FALSE.
-               ! Define bounds block
-               rmin = wall%blocks(i)%rmin - epsilon
-               rmax = wall%blocks(i)%rmax + epsilon
-
-               ! Extend the domain to include the neighbors (SAL)
-               !rmin = rmin - (rmax - rmin)*0.25
-               !rmax = rmax + (rmax - rmin)*0.25
-      
-               ! Check which vertices are in block         
-               !mask_face(:,1) = (A0(:,1) < rmax(1) .and. A0(:,1) >= rmin(1) &
-               !   .and. A0(:,2) < rmax(2) .and. A0(:,2) >= rmin(2) &
-               !   .and. A0(:,3) < rmax(3) .and. A0(:,3) >= rmin(3))
-               !mask_face(:,2) = (A1(:,1) < rmax(1) .and. A1(:,1) >= rmin(1) &
-               !   .and. A1(:,2) < rmax(2) .and. A1(:,2) >= rmin(2) &
-               !   .and. A1(:,3) < rmax(3) .and. A1(:,3) >= rmin(3))
-               !mask_face(:,3) = (A2(:,1) < rmax(1) .and. A2(:,1) >= rmin(1) &
-               !   .and. A2(:,2) < rmax(2) .and. A2(:,2) >= rmin(2) &
-               !   .and. A2(:,3) < rmax(3) .and. A2(:,3) >= rmin(3))
-
-               ! Could probably vectorize
-               DO j = 1,nface
-                  CALL LINE_BOX_INTERSECTION(A0(j,1),A0(j,2),A0(j,3), &
-                     A1(j,1),A1(j,2),A1(j,3),rmin(1),rmin(2),rmin(3),&
-                     rmax(1),rmax(2),rmax(3),mask_face(j,1))
-                  CALL LINE_BOX_INTERSECTION(A1(j,1),A1(j,2),A1(j,3), &
-                     A2(j,1),A2(j,2),A2(j,3),rmin(1),rmin(2),rmin(3),&
-                     rmax(1),rmax(2),rmax(3),mask_face(j,2))
-                  CALL LINE_BOX_INTERSECTION(A2(j,1),A2(j,2),A2(j,3), &
-                     A0(j,1),A0(j,2),A0(j,3),rmin(1),rmin(2),rmin(3),&
-                     rmax(1),rmax(2),rmax(3),mask_face(j,3))
+            IF (shar_rank == 0 .and. ldebug) WRITE(6, *) 'Filling blocks: pass ', pass
+            fillpos = 0
+            IF (myend >= mystart) THEN
+               DO j = 1, nface
+                  fmin(1) = MIN(A0(j,1), A0(j,1)+V0(j,1), A0(j,1)+V1(j,1))
+                  fmin(2) = MIN(A0(j,2), A0(j,2)+V0(j,2), A0(j,2)+V1(j,2))
+                  fmin(3) = MIN(A0(j,3), A0(j,3)+V0(j,3), A0(j,3)+V1(j,3))
+                  fmax(1) = MAX(A0(j,1), A0(j,1)+V0(j,1), A0(j,1)+V1(j,1))
+                  fmax(2) = MAX(A0(j,2), A0(j,2)+V0(j,2), A0(j,2)+V1(j,2))
+                  fmax(3) = MAX(A0(j,3), A0(j,3)+V0(j,3), A0(j,3)+V1(j,3))
+                  ! One block of margin; the exact test below decides.
+                  DO k = 1, 3
+                     lo(k) = MAX(1, FLOOR((fmin(k) - wall%rmin(k) - epsilon) / wall%stepsize))
+                     hi(k) = MIN(wall%br(k), FLOOR((fmax(k) - wall%rmin(k) + epsilon) / wall%stepsize) + 2)
+                  END DO
+                  DO xi = lo(1), hi(1)
+                     DO yi = lo(2), hi(2)
+                        DO zi = lo(3), hi(3)
+                           i = zi + (yi - 1) * wall%step(2) + (xi - 1) * wall%step(1)
+                           IF (i < mystart .or. i > myend) CYCLE
+                           IF (ANY(fmin > wall%blocks(i)%rmax + epsilon)) CYCLE
+                           IF (ANY(fmax < wall%blocks(i)%rmin - epsilon)) CYCLE
+                           IF (pass == 1) THEN
+                              counter_arr(i) = counter_arr(i) + 1
+                           ELSE
+                              fillpos(i) = fillpos(i) + 1
+                              wall%blocks(i)%face(fillpos(i)) = j
+                           END IF
+                        END DO
+                     END DO
+                  END DO
                END DO
-
-               ! Mask
-               mask = ANY(mask_face,2)
-               
-               ! Add faces to face list of wall block
-               counter = 0
-               DO j=1,nface
-                  IF (mask(j)) THEN
-                     counter = counter + 1
-                     wall%blocks(i)%face(counter) = j
-                  END IF
-                  ! Break if all faces have been found
-                  IF (counter == counter_arr(i)) EXIT
-               END DO
-            END IF           
+            END IF
+#if defined(MPI_OPT)
+            IF (lcomm) CALL MPI_BARRIER(shar_comm,istat)
+#endif
          END DO
-         
-         ! Cleanup
-#if defined(MPI_OPT)
-         IF (lcomm) CALL MPI_BARRIER(shar_comm,istat)
-#endif
+
          IF (shar_rank == 0 .and. ldebug) WRITE(6, *) 'Filling blocks: Starting cleanup fill blocks'
-         DEALLOCATE(mask_face, mask)
+         DEALLOCATE(fillpos)
          CALL free_mpi_array(win_counter_arr, counter_arr, shared)
-         CALL free_mpi_array(win_A1, A1, shared)
-         CALL free_mpi_array(win_A2, A2, shared)
          END SUBROUTINE FILL_BLOCKS
    
       SUBROUTINE WRITE_WALL(filename, istat)

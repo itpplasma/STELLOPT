@@ -205,7 +205,7 @@ c evaluate Ion temperature gradients in Kev
       if (irho .ne. 1 .and. irho .ne. irup) tempirho1 =
      1  (tempi1(irho+1)-tempi1(irho-1))/drho
       if (irho .eq. 1)tempirho1 = (tempi1(irho+1)-tempi1(irho))/drho
-      if (irho .eq. irup)temperho1=(tempi1(irho)-tempi1(irho-1))/drho
+      if (irho .eq. irup)tempirho1=(tempi1(irho)-tempi1(irho-1))/drho
 
 c  evaluate electron density gradients in 10**20 m-3
 

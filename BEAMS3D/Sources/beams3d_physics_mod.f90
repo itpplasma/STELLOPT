@@ -37,7 +37,10 @@ MODULE beams3d_physics_mod
                               B_kick_min, B_kick_max, E_kick, freq_kick, &
                               nsub_fullorbit, &
                               plasma_mass, NI5D, BR4D, BZ4D, BPHI4D,plasma_Zmean, &
-                              therm_factor, lion_mix
+                              therm_factor, lion_mix, &
+                              nte, nne, nti, TE_spl_s, NE_spl_s, TI_spl_s, &
+                              ZEFF_spl_s, OMEG_spl_s, NI_spl_s, s_max, &
+                              s_max_te, s_max_ne, s_max_ti, s_max_zeff, s_max_omeg
       USE EZspline_obj
       USE EZspline
       USE adas_mod_parallel
@@ -233,6 +236,34 @@ MODULE beams3d_physics_mod
       END SUBROUTINE local_coulomb_rates
 
       !-----------------------------------------------------------------
+      !     Subroutine:    profiles_at_s
+      !     Description:   Plasma profiles at flux label s from the 1-D
+      !                    splines that also fill the 3-D grid, with the
+      !                    same limits: each profile is held beyond its
+      !                    S_MAX_* and the plasma ends at S_MAX.
+      !-----------------------------------------------------------------
+      SUBROUTINE profiles_at_s(s,te,ne,ti,zeff,omeg,ni)
+         IMPLICIT NONE
+         DOUBLE PRECISION, INTENT(in)  :: s
+         DOUBLE PRECISION, INTENT(out) :: te, ne, ti, zeff, omeg, ni(NION)
+         INTEGER :: l, ier
+         te = zero; ne = zero; ti = zero; zeff = one; omeg = zero; ni = zero
+         IF (s >= s_max) RETURN
+         IF (nte > 0) CALL EZspline_interp(TE_spl_s,MIN(s,s_max_te),te,ier)
+         IF (nne > 0) CALL EZspline_interp(NE_spl_s,MIN(s,s_max_ne),ne,ier)
+         IF (nti > 0) CALL EZspline_interp(TI_spl_s,MIN(s,s_max_ti),ti,ier)
+         IF (nomeg > 0) CALL EZspline_interp(OMEG_spl_s,MIN(s,s_max_omeg),omeg,ier)
+         IF (nzeff > 0) THEN
+            CALL EZspline_interp(ZEFF_spl_s,MIN(s,s_max_zeff),zeff,ier)
+            DO l = 1, NION
+               CALL EZspline_interp(NI_spl_s(l),MIN(s,s_max_zeff),ni(l),ier)
+            END DO
+         END IF
+         te = MAX(te,zero); ne = MAX(ne,zero); ti = MAX(ti,zero)
+         zeff = MAX(zeff,one); ni = MAX(ni,zero)
+      END SUBROUTINE profiles_at_s
+
+      !-----------------------------------------------------------------
       !     Subroutine:    scatter_pitch
       !     Description:   Isotropic rotation of the velocity by the fixed
       !                    angle sqrt(4*dhh*dt) about a random azimuth. Its
@@ -335,34 +366,10 @@ MODULE beams3d_physics_mod
             bphi_temp = fval(1)            
             CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
-                            TE4D(1,1,1,1),nr,nphi,nz)
-            te_temp = max(fval(1),zero)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
-                            hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
-                            NE4D(1,1,1,1),nr,nphi,nz)
-            ne_temp = max(fval(1),zero)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
-                            hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
-                            TI4D(1,1,1,1),nr,nphi,nz)
-            ti_temp = max(fval(1),zero)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
-                            hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
-                            ZEFF4D(1,1,1,1),nr,nphi,nz)
-            zeff_temp = max(fval(1),one)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
-                            hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             RHO4D(1,1,1,1),nr,nphi,nz)
             rho_temp = max(fval(1),zero)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
-                            hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
-                            OMEG4D(1,1,1,1),nr,nphi,nz)
-            omeg_temp = fval(1)       
-            DO l = 1, NION
-               CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
-                  hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
-                  NI5D(1,1,1,1,l),nr,nphi,nz)
-               ni_temp(l) = max(fval(1),zero) !Set to one to prevent NaN Zeff later on
-            END DO
+            CALL profiles_at_s(rho_temp*rho_temp,te_temp,ne_temp,ti_temp, &
+                               zeff_temp,omeg_temp,ni_temp)
             IF (lion_mix) CALL set_local_ion_mix(ni_temp)
 
             !-----------------------------------------------------------

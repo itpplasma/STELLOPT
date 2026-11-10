@@ -55,7 +55,6 @@
             CALL EZspline_free(F_spl,ier)
          END IF
          CALL mpidealloc(TE,win_TE)
-         IF (nte > 0) CALL EZspline_free(TE_spl_s,ier)
 
 !-----------------------------------------------------------------------
 !        NE
@@ -74,7 +73,6 @@
             CALL EZspline_free(F_spl,ier)
          END IF
          CALL mpidealloc(NE,win_NE)
-         IF (nne > 0) CALL EZspline_free(NE_spl_s,ier)
 
 !-----------------------------------------------------------------------
 !        TI
@@ -93,7 +91,6 @@
             CALL EZspline_free(F_spl,ier)
          END IF
          CALL mpidealloc(TI,win_TI)
-         IF (nti > 0) CALL EZspline_free(TI_spl_s,ier)
 
 !-----------------------------------------------------------------------
 !        ZEFF
@@ -112,7 +109,6 @@
             CALL EZspline_free(F_spl,ier)
          END IF
          CALL mpidealloc(ZEFF_ARR,win_ZEFF_ARR)
-         IF (nzeff > 0) CALL EZspline_free(ZEFF_spl_s,ier)
 
 !-----------------------------------------------------------------------
 !        OMEG
@@ -131,7 +127,6 @@
             CALL EZspline_free(F_spl,ier)
          END IF
          CALL mpidealloc(OMEG_ARR,win_OMEG_ARR)
-         IF (nomeg > 0) CALL EZspline_free(OMEG_spl_s,ier)
 
 !-----------------------------------------------------------------------
 !        NI 5D
@@ -152,11 +147,6 @@
             END DO
          END IF
          CALL mpidealloc(NI,win_NI)
-         IF (nzeff > 0) THEN
-            DO i = 1, NION
-               CALL EZspline_free(NI_spl_s(i),ier)
-            END DO
-         END IF
 
       END IF !.not.lvac
 

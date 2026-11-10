@@ -28,7 +28,7 @@
                                     HDF5_OPEN_ERR,HDF5_WRITE_ERR,&
                                     HDF5_CLOSE_ERR, BEAMS3D_VERSION, weight, e_beams, p_beams,&
                                     charge, Zatom, mass, ldepo, lcollision, lfusion, lboxsim, &
-                                    leqdsk, eqdsk_string, lhint, lhitonly, lkick, NION, pi2, &
+                                    leqdsk, eqdsk_string, lhint, lhitonly, lnogrid, lkick, NION, pi2, &
                                     NI_AUX_M, NI_AUX_Z
       USE safe_open_mod, ONLY: safe_open
       USE wall_mod, ONLY: nface,nvertex,face,vertex,ihit_array
@@ -115,52 +115,58 @@
                IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'phiaxis',ier)
                CALL write_var_hdf5(fid,'zaxis',nz,ier,DBLVAR=zaxis,ATT='Vertical Axis [rad]',ATT_NAME='description')
                IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'zaxis',ier)
-               CALL write_var_hdf5(fid,'B_R',nr,nphi,nz,ier,DBLVAR=B_R,ATT='Radial Trajectory Eq. (BR)',ATT_NAME='description')
-               IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'B_R',ier)
-               CALL write_var_hdf5(fid,'B_Z',nr,nphi,nz,ier,DBLVAR=B_Z,ATT='Vertical Trajectory Eq. (BZ)',ATT_NAME='description')
-               IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'B_Z',ier)
-               CALL write_var_hdf5(fid,'B_PHI',nr,nphi,nz,ier,DBLVAR=B_PHI,ATT='Toroidal Trajectory (BPHI)',ATT_NAME='description')
-               IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'B_PHI',ier)
-               CALL write_var_hdf5(fid,'S_ARR',nr,nphi,nz,ier,DBLVAR=S_ARR,ATT='Normalized Toroidal Flux',ATT_NAME='description')
-               IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'S_ARR',ier)
-               CALL write_var_hdf5(fid,'RHO_ARR',nr,nphi,nz,ier,DBLVAR=RHO_ARR,ATT='Normalized Radius',ATT_NAME='description')
-               IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'RHO_ARR',ier)
-               CALL write_var_hdf5(fid,'U_ARR',nr,nphi,nz,ier,DBLVAR=U_ARR,ATT='Equilibrium Poloidal Angle [rad]',ATT_NAME='description')
-               IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'U_ARR',ier)
-               CALL write_var_hdf5(fid,'POT_ARR',nr,nphi,nz,ier,DBLVAR=POT_ARR,ATT='Electrostatic Potential [V]',ATT_NAME='description')
-               IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'POT_ARR',ier)
+               ! -continue_grid runs read these grids from their input, and
+               ! writing them again costs gigabytes per run.
+               IF (.not. lnogrid) THEN
+                  CALL write_var_hdf5(fid,'B_R',nr,nphi,nz,ier,DBLVAR=B_R,ATT='Radial Trajectory Eq. (BR)',ATT_NAME='description')
+                  IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'B_R',ier)
+                  CALL write_var_hdf5(fid,'B_Z',nr,nphi,nz,ier,DBLVAR=B_Z,ATT='Vertical Trajectory Eq. (BZ)',ATT_NAME='description')
+                  IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'B_Z',ier)
+                  CALL write_var_hdf5(fid,'B_PHI',nr,nphi,nz,ier,DBLVAR=B_PHI,ATT='Toroidal Trajectory (BPHI)',ATT_NAME='description')
+                  IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'B_PHI',ier)
+                  CALL write_var_hdf5(fid,'S_ARR',nr,nphi,nz,ier,DBLVAR=S_ARR,ATT='Normalized Toroidal Flux',ATT_NAME='description')
+                  IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'S_ARR',ier)
+                  CALL write_var_hdf5(fid,'RHO_ARR',nr,nphi,nz,ier,DBLVAR=RHO_ARR,ATT='Normalized Radius',ATT_NAME='description')
+                  IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'RHO_ARR',ier)
+                  CALL write_var_hdf5(fid,'U_ARR',nr,nphi,nz,ier,DBLVAR=U_ARR,ATT='Equilibrium Poloidal Angle [rad]',ATT_NAME='description')
+                  IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'U_ARR',ier)
+                  CALL write_var_hdf5(fid,'POT_ARR',nr,nphi,nz,ier,DBLVAR=POT_ARR,ATT='Electrostatic Potential [V]',ATT_NAME='description')
+                  IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'POT_ARR',ier)
+               END IF
                IF (ALLOCATED(GFactor)) THEN
                   CALL write_var_hdf5(fid,'GFactor',ns_prof1,ier,DBLVAR=GFactor,ATT='(1-l31)/Zeff',ATT_NAME='description')
                   IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'GFactor',ier)
                END IF
-               IF (ASSOCIATED(TE)) THEN
-                  CALL write_var_hdf5(fid,'TE',nr,nphi,nz,ier,DBLVAR=TE,ATT='Electron Temperature [eV]',ATT_NAME='description')
-                  IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'TE',ier)
+               IF (.not. lnogrid) THEN
+                  IF (ASSOCIATED(TE)) THEN
+                     CALL write_var_hdf5(fid,'TE',nr,nphi,nz,ier,DBLVAR=TE,ATT='Electron Temperature [eV]',ATT_NAME='description')
+                     IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'TE',ier)
+                  END IF
+                  IF (ASSOCIATED(NE)) THEN
+                     CALL write_var_hdf5(fid,'NE',nr,nphi,nz,ier,DBLVAR=NE,ATT='Electron Density [m^-3]',ATT_NAME='description')
+                     IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'NE',ier)
+                  END IF
+                  IF (ASSOCIATED(NI)) THEN
+                     CALL write_var_hdf5(fid,'NI_M',nion,ier,DBLVAR=NI_AUX_M,ATT='Ion Mass [kg]',ATT_NAME='description')
+                     IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'NI_AUX_M',ier)
+                     CALL write_var_hdf5(fid,'NI_Z',nion,ier,INTVAR=NI_AUX_Z,ATT='Ion Charge [ec]',ATT_NAME='description')
+                     IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'NI_AUX_Z',ier)
+                     CALL write_var_hdf5(fid,'NI',nion,nr,nphi,nz,ier,DBLVAR=NI,ATT='Ion Densities [m^-3]',ATT_NAME='description')
+                     IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'NI',ier)
+                  END IF
+                  IF (ASSOCIATED(TI)) THEN
+                     CALL write_var_hdf5(fid,'TI',nr,nphi,nz,ier,DBLVAR=TI,ATT='Ion Temperature [eV]',ATT_NAME='description')
+                     IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'TI',ier)
+                  END IF
+                  IF (ASSOCIATED(ZEFF_ARR)) THEN
+                     CALL write_var_hdf5(fid,'ZEFF_ARR',nr,nphi,nz,ier,DBLVAR=ZEFF_ARR,ATT='Effective Ion Charge',ATT_NAME='description')
+                     IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'ZEFF_ARR',ier)
+                  END IF
+                  IF (ASSOCIATED(OMEG_ARR)) THEN
+                     CALL write_var_hdf5(fid,'OMEG_ARR',nr,nphi,nz,ier,DBLVAR=OMEG_ARR,ATT='Toroidal rotation [rad/s]',ATT_NAME='description')
+                     IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'OMEG_ARR',ier)
+                  END IF               
                END IF
-               IF (ASSOCIATED(NE)) THEN
-                  CALL write_var_hdf5(fid,'NE',nr,nphi,nz,ier,DBLVAR=NE,ATT='Electron Density [m^-3]',ATT_NAME='description')
-                  IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'NE',ier)
-               END IF
-               IF (ASSOCIATED(NI)) THEN
-                  CALL write_var_hdf5(fid,'NI_M',nion,ier,DBLVAR=NI_AUX_M,ATT='Ion Mass [kg]',ATT_NAME='description')
-                  IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'NI_AUX_M',ier)
-                  CALL write_var_hdf5(fid,'NI_Z',nion,ier,INTVAR=NI_AUX_Z,ATT='Ion Charge [ec]',ATT_NAME='description')
-                  IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'NI_AUX_Z',ier)
-                  CALL write_var_hdf5(fid,'NI',nion,nr,nphi,nz,ier,DBLVAR=NI,ATT='Ion Densities [m^-3]',ATT_NAME='description')
-                  IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'NI',ier)
-               END IF
-               IF (ASSOCIATED(TI)) THEN
-                  CALL write_var_hdf5(fid,'TI',nr,nphi,nz,ier,DBLVAR=TI,ATT='Ion Temperature [eV]',ATT_NAME='description')
-                  IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'TI',ier)
-               END IF
-               IF (ASSOCIATED(ZEFF_ARR)) THEN
-                  CALL write_var_hdf5(fid,'ZEFF_ARR',nr,nphi,nz,ier,DBLVAR=ZEFF_ARR,ATT='Effective Ion Charge',ATT_NAME='description')
-                  IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'ZEFF_ARR',ier)
-               END IF
-               IF (ASSOCIATED(OMEG_ARR)) THEN
-                  CALL write_var_hdf5(fid,'OMEG_ARR',nr,nphi,nz,ier,DBLVAR=OMEG_ARR,ATT='Toroidal rotation [rad/s]',ATT_NAME='description')
-                  IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'OMEG_ARR',ier)
-               END IF               
                IF (ASSOCIATED(vertex)) THEN
                   CALL write_scalar_hdf5(fid,'nvertex',ier,INTVAR=nvertex,ATT='Number of Wall Vertices',ATT_NAME='description')
                   IF (ier /= 0) CALL handle_err(HDF5_WRITE_ERR,'nvertex',ier)

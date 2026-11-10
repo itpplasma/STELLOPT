@@ -144,6 +144,16 @@
 
 #else
 
+#if defined(MPI_OPT)
+      IF (.not. lfvar .and. INT(n2-n1+1,8)*INT(m2-m1+1,8) < HUGE(i)) THEN
+         CALL write_gathered(rank, dimsf, n2-n1+1, m1, mystart, myend, &
+                             'beams3d_'//TRIM(id_string)//'.h5', var_name, &
+                             livar, INTVAR, DBLVAR, DESCRIPTION)
+         DEALLOCATE(dimsf,chunk_dims,counts,offset)
+         RETURN
+      END IF
+#endif
+
       DO i = 0, nprocs_beams-1
          IF (myworkid == i) THEN
             ! Open the fotran interface
@@ -355,6 +365,22 @@
 
 #else
 
+#if defined(MPI_OPT)
+      IF (.not. lfvar) THEN
+         IF (PRESENT(FILENAME)) THEN
+            CALL write_gathered(rank, dimsf, 1, m1, mystart, myend, &
+                                TRIM(FILENAME)//'.h5', var_name, &
+                                livar, INTVAR, DBLVAR, DESCRIPTION)
+         ELSE
+            CALL write_gathered(rank, dimsf, 1, m1, mystart, myend, &
+                                'ascot5_'//TRIM(id_string)//'.h5', var_name, &
+                                livar, INTVAR, DBLVAR, DESCRIPTION)
+         END IF
+         DEALLOCATE(dimsf,chunk_dims,counts,offset)
+         RETURN
+      END IF
+#endif
+
       DO i = 0, nprocs_beams-1
          IF (myworkid == i) THEN
             ! Open the fotran interface
@@ -435,4 +461,78 @@
 !-----------------------------------------------------------------------
       END SUBROUTINE beams3d_write1d_parhdf5
 
-      END MODULE beams3d_write_par
+#if defined(MPI_OPT)
+      SUBROUTINE write_gathered(rank,dimsf,ncol,m1,mystart,myend,fname,var_name, &
+                                livar,INTVAR,DBLVAR,DESCRIPTION)
+      !-----------------------------------------------------------------
+      ! Rank by rank, each rank opening and closing the file in turn,
+      ! costs seconds per dataset on network file systems. Every rank
+      ! holds the contiguous columns mystart:myend, so gather them on
+      ! master and write the dataset with one open.
+      !-----------------------------------------------------------------
+      USE mpi_params
+      USE hdf5
+      USE ez_hdf5, ONLY: write_att_hdf5
+      USE beams3d_runtime, ONLY: nprocs_beams, handle_err, MPI_BARRIER_ERR
+      USE mpi_inc
+      IMPLICIT NONE
+      INTEGER, INTENT(in)                    :: rank, ncol, m1, mystart, myend
+      INTEGER(HSIZE_T), INTENT(in)           :: dimsf(rank)
+      CHARACTER(LEN=*), INTENT(in)           :: fname, var_name
+      LOGICAL, INTENT(in)                    :: livar
+      INTEGER, INTENT(in), OPTIONAL          :: INTVAR(*)
+      DOUBLE PRECISION, INTENT(in), OPTIONAL :: DBLVAR(*)
+      CHARACTER(LEN=*), INTENT(in), OPTIONAL :: DESCRIPTION
+      INTEGER :: ier, i, nsend, myrange(2)
+      INTEGER, ALLOCATABLE :: ranges(:,:), rcounts(:), displs(:)
+      INTEGER, ALLOCATABLE :: ifull(:)
+      DOUBLE PRECISION, ALLOCATABLE :: dfull(:)
+      INTEGER(HID_T) :: file_id, fspace_id, dset_id
+
+      nsend = MAX(myend-mystart+1,0)*ncol
+      myrange = (/ mystart, myend /)
+      ALLOCATE(ranges(2,nprocs_beams), rcounts(nprocs_beams), displs(nprocs_beams))
+      CALL MPI_GATHER(myrange, 2, MPI_INTEGER, ranges, 2, MPI_INTEGER, master, MPI_COMM_BEAMS, ier)
+      rcounts = 0; displs = 0
+      IF (myworkid == master) THEN
+         DO i = 1, nprocs_beams
+            rcounts(i) = MAX(ranges(2,i)-ranges(1,i)+1,0)*ncol
+            IF (rcounts(i) > 0) displs(i) = (ranges(1,i)-m1)*ncol
+         END DO
+      END IF
+      IF (livar) THEN
+         ALLOCATE(ifull(PRODUCT(dimsf)))
+         ifull = 0
+         CALL MPI_GATHERV(INTVAR, nsend, MPI_INTEGER, ifull, rcounts, displs, &
+                          MPI_INTEGER, master, MPI_COMM_BEAMS, ier)
+      ELSE
+         ALLOCATE(dfull(PRODUCT(dimsf)))
+         dfull = 0
+         CALL MPI_GATHERV(DBLVAR, nsend, MPI_DOUBLE_PRECISION, dfull, rcounts, displs, &
+                          MPI_DOUBLE_PRECISION, master, MPI_COMM_BEAMS, ier)
+      END IF
+      IF (myworkid == master) THEN
+         CALL h5open_f(ier)
+         CALL h5fopen_f(fname, H5F_ACC_RDWR_F, file_id, ier, access_prp = H5P_DEFAULT_F)
+         CALL h5screate_simple_f(rank, dimsf, fspace_id, ier)
+         IF (livar) THEN
+            CALL h5dcreate_f(file_id, TRIM(var_name), H5T_NATIVE_INTEGER, fspace_id, dset_id, ier)
+         ELSE
+            CALL h5dcreate_f(file_id, TRIM(var_name), H5T_NATIVE_DOUBLE, fspace_id, dset_id, ier)
+         END IF
+         IF (PRESENT(DESCRIPTION)) CALL write_att_hdf5(dset_id,'description',DESCRIPTION,ier)
+         IF (livar) THEN
+            CALL h5dwrite_f(dset_id, H5T_NATIVE_INTEGER, ifull, dimsf, ier)
+         ELSE
+            CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dfull, dimsf, ier)
+         END IF
+         CALL h5sclose_f(fspace_id, ier)
+         CALL h5dclose_f(dset_id, ier)
+         CALL h5fclose_f(file_id, ier)
+         CALL h5close_f(ier)
+      END IF
+      CALL MPI_BARRIER(MPI_COMM_BEAMS, ier)
+      IF (ier /= 0) CALL handle_err(MPI_BARRIER_ERR,'beams3d_write_parhdf5',ier)
+      END SUBROUTINE write_gathered
+#endif
+END MODULE beams3d_write_par

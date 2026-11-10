@@ -165,6 +165,7 @@ CONTAINS
          lcontinue_grid = .false.
          lrestart_particles = .false.
          lhitonly  = .false.
+         lnogrid   = .false.
          lplasma_only = .false.
          lwall_from_vmec = .false.
          lraw = .false.
@@ -314,6 +315,8 @@ CONTAINS
                 CALL GETCARG(i, bbnbi_string, numargs)
             case ("-hitonly","-hit_only")
                 lhitonly  = .true.
+            case ("-nogrid","-no_grid")
+                lnogrid  = .true.
             case ("-depo")
                 ldepo  = .true.
             case ("-raw")
@@ -379,6 +382,7 @@ CONTAINS
                 write(6, *) '     -vac:            Only vacuum field'
                 write(6, *) '     -plasma:         Only plasma field'
                 write(6, *) '     -depo:           Only Deposition'
+                write(6, *) '     -nogrid:         Do not write the 3D grids to the output'
                 write(6, *) '     -collisions:     Force collision operator'
                 write(6, *) '     -rand:           Randomize particle processor'
                 write(6, *) '     -suzuki:         Force Suzuki NBI model'
@@ -466,6 +470,7 @@ CONTAINS
       CALL MPI_BCAST(lrestart_particles, 1, MPI_LOGICAL, master, MPI_COMM_BEAMS, ierr_mpi)
       IF (ierr_mpi /= MPI_SUCCESS) CALL handle_err(MPI_BCAST_ERR, 'beams3d_main', ierr_mpi)
       CALL MPI_BCAST(lhitonly,1,MPI_LOGICAL, master, MPI_COMM_BEAMS,ierr_mpi)
+      CALL MPI_BCAST(lnogrid,1,MPI_LOGICAL, master, MPI_COMM_BEAMS,ierr_mpi)
       IF (ierr_mpi /= MPI_SUCCESS) CALL handle_err(MPI_BCAST_ERR,'beams3d_main',ierr_mpi)
       CALL MPI_BCAST(lraw,1,MPI_LOGICAL, master, MPI_COMM_BEAMS,ierr_mpi)
       IF (ierr_mpi /= MPI_SUCCESS) CALL handle_err(MPI_BCAST_ERR,'beams3d_main',ierr_mpi)

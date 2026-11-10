@@ -171,7 +171,7 @@ MODULE beams3d_runtime
                lascot, lascot4, lfidasim, lfidasim_cyl, lsplit, &
                lvessel_beam, lascotfl, lrandomize, leqdsk, lhint, &
                lboxsim, limas, lfieldlines, lbeamdensity, lmumat, &
-               luser_init, lreadascotendstate
+               luser_init, lreadascotendstate, lnogrid
     INTEGER :: nextcur, nprocs_beams, ndt, ndt_max, continue_index
     INTEGER :: win_beam
     INTEGER, DIMENSION(:), POINTER :: beam

@@ -58,4 +58,44 @@
                                   vr_lines(:,:),vphi_lines(:,:),vz_lines(:,:), &
                                   time_lines(:,:)
 
+      ! Distribution deposits wait here so the shared-window lock is taken
+      ! once per ndist_buf deposits instead of once per time step.
+      INTEGER, PARAMETER :: ndist_buf = 4096
+      INTEGER :: ndist_pend = 0
+      INTEGER :: dist_buf_i(6,ndist_buf)
+      REAL(rprec) :: dist_buf_w(ndist_buf)
+
+      CONTAINS
+
+      SUBROUTINE dist5d_add(b, d1, d2, d3, d4, d5, xw)
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: b, d1, d2, d3, d4, d5
+      REAL(rprec), INTENT(IN) :: xw
+      ndist_pend = ndist_pend + 1
+      dist_buf_i(:,ndist_pend) = (/b, d1, d2, d3, d4, d5/)
+      dist_buf_w(ndist_pend) = xw
+      IF (ndist_pend == ndist_buf) CALL dist5d_flush
+      END SUBROUTINE dist5d_add
+
+      SUBROUTINE dist5d_flush
+      USE mpi_inc
+      IMPLICIT NONE
+      INTEGER :: n, ier
+      IF (ndist_pend == 0) RETURN
+#if defined(MPI_OPT)
+      CALL MPI_WIN_LOCK(MPI_LOCK_EXCLUSIVE,0,0,win_dist5d,ier)
+#endif
+      DO n = 1, ndist_pend
+         dist5d_prof(dist_buf_i(1,n),dist_buf_i(2,n),dist_buf_i(3,n), &
+                     dist_buf_i(4,n),dist_buf_i(5,n),dist_buf_i(6,n)) = &
+            dist5d_prof(dist_buf_i(1,n),dist_buf_i(2,n),dist_buf_i(3,n), &
+                        dist_buf_i(4,n),dist_buf_i(5,n),dist_buf_i(6,n)) + dist_buf_w(n)
+      END DO
+#if defined(MPI_OPT)
+      CALL MPI_WIN_SYNC(win_dist5d,ier)
+      CALL MPI_WIN_UNLOCK(0,win_dist5d,ier)
+#endif
+      ndist_pend = 0
+      END SUBROUTINE dist5d_flush
+
       END MODULE beams3d_lines

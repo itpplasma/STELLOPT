@@ -56,6 +56,7 @@ SUBROUTINE beams3d_follow_gc
                         dtmin, dtmax
     DOUBLE PRECISION :: atol(4)
     DOUBLE PRECISION :: rkh_work(4, 2)
+    DOUBLE PRECISION :: h_dp, vscale_dp
     CHARACTER*1 :: relab
     DOUBLE PRECISION, PARAMETER :: e_charge      = 1.602176634D-19 !e_c
 
@@ -101,6 +102,8 @@ SUBROUTINE beams3d_follow_gc
              WRITE(6, '(A,EN12.3,A,A1)') '         Tol: ', follow_tol, '  Type: ', relab
           CASE("LSODE")
              WRITE(6, '(A,EN12.3,A,I2)') '         Tol: ', follow_tol, '  Type: ', mf
+          CASE("DOPRI5")
+             WRITE(6, '(A,EN12.3)') '         Tol: ', follow_tol
        END SELECT
        WRITE(6, '(5X,A,I3,A)', ADVANCE = 'no') 'Trajectory Calculation [', 0, ']%'
        CALL FLUSH(6)
@@ -221,7 +224,7 @@ SUBROUTINE beams3d_follow_gc
                         IF (ABS(tf_nag) > ABS(my_end)+0.5D0*ABS(dt)) EXIT
                     END DO
                 END DO
-            CASE ("LSODE","DLSODE")
+            CASE ("LSODE","DLSODE","DOPRI5")
                 ! Open a file
                 iunit = myworkid+400
                 ier = 0
@@ -286,7 +289,17 @@ SUBROUTINE beams3d_follow_gc
                     iopt = 0 ! No optional output
                     w = 0; iwork = 0; itask = 1; istate = 1;
                     itol = 2; rtol = follow_tol; atol(:) = follow_tol
+                    h_dp = 0
+                    vscale_dp = SQRT(2*previous_energy/mymass)
                     DO
+                        IF (TRIM(int_type) == 'DOPRI5') THEN
+                           CALL dopri5_advance(t_nag, tf_nag, q, h_dp, follow_tol, vscale_dp)
+                           t_last(l) = tf_nag
+                           CALL out_beams3d_gc(tf_nag,q)
+                           IF ((ABS(tf_nag) > ABS(my_end)+0.5D0*ABS(dt)) &
+                               .or. (rho_help > rho_fullorbit)) EXIT
+                           CYCLE
+                        END IF
                         IF (lcollision) istate = 1
                         CALL FLUSH(6)
                         CALL DLSODE(fgc_lsode, neqs_nag, q, t_nag, tf_nag, itol, rtol, atol, itask, istate, &
@@ -335,6 +348,8 @@ SUBROUTINE beams3d_follow_gc
        CALL FLUSH(6)
     END IF    
 
+    CALL dist5d_flush
+
     ! Check for crash
     istate = 0
     CALL handle_err(MPI_CHECK,'beams3d_follow',istate)
@@ -344,7 +359,70 @@ SUBROUTINE beams3d_follow_gc
     IF (ALLOCATED(w)) DEALLOCATE(w)
     IF (ALLOCATED(iwork)) DEALLOCATE(iwork)
     RETURN
-    !-----------------------------------------------------------------------
-    !     End Subroutine
-    !-----------------------------------------------------------------------
+
+CONTAINS
+
+    SUBROUTINE dopri5_advance(t, tout, y, h, tol, vscale)
+    ! Dormand-Prince 5(4) from t to tout with error control. A one-step
+    ! method needs no restart after the collision kick at every output time,
+    ! and h carries the accepted step size over to the next interval.
+    IMPLICIT NONE
+    DOUBLE PRECISION, INTENT(INOUT) :: t, y(4), h
+    DOUBLE PRECISION, INTENT(IN) :: tout, tol, vscale
+    DOUBLE PRECISION, PARAMETER :: &
+       c2 = 1D0/5, c3 = 3D0/10, c4 = 4D0/5, c5 = 8D0/9, &
+       a21 = 1D0/5, &
+       a31 = 3D0/40, a32 = 9D0/40, &
+       a41 = 44D0/45, a42 = -56D0/15, a43 = 32D0/9, &
+       a51 = 19372D0/6561, a52 = -25360D0/2187, a53 = 64448D0/6561, a54 = -212D0/729, &
+       a61 = 9017D0/3168, a62 = -355D0/33, a63 = 46732D0/5247, a64 = 49D0/176, a65 = -5103D0/18656, &
+       b1 = 35D0/384, b3 = 500D0/1113, b4 = 125D0/192, b5 = -2187D0/6784, b6 = 11D0/84, &
+       e1 = 71D0/57600, e3 = -71D0/16695, e4 = 71D0/1920, e5 = -17253D0/339200, &
+       e6 = 22D0/525, e7 = -1D0/40
+    DOUBLE PRECISION :: k1(4), k2(4), k3(4), k4(4), k5(4), k6(4), k7(4), &
+                        ynew(4), yerr(4), sc(4), hs, errn, fac, dir
+    LOGICAL :: lclip
+    INTEGER :: nrej
+    dir = SIGN(1D0, tout - t)
+    IF (h <= 0) h = ABS(tout - t)
+    CALL fgc_eom(t, y, k1)
+    nrej = 0
+    DO WHILE (dir*(tout - t) > 0)
+       lclip = h >= ABS(tout - t)
+       hs = dir*MIN(h, ABS(tout - t))
+       CALL fgc_eom(t + c2*hs, y + hs*a21*k1, k2)
+       CALL fgc_eom(t + c3*hs, y + hs*(a31*k1 + a32*k2), k3)
+       CALL fgc_eom(t + c4*hs, y + hs*(a41*k1 + a42*k2 + a43*k3), k4)
+       CALL fgc_eom(t + c5*hs, y + hs*(a51*k1 + a52*k2 + a53*k3 + a54*k4), k5)
+       CALL fgc_eom(t + hs, y + hs*(a61*k1 + a62*k2 + a63*k3 + a64*k4 + a65*k5), k6)
+       ynew = y + hs*(b1*k1 + b3*k3 + b4*k4 + b5*k5 + b6*k6)
+       CALL fgc_eom(t + hs, ynew, k7)
+       yerr = hs*(e1*k1 + e3*k3 + e4*k4 + e5*k5 + e6*k6 + e7*k7)
+       ! Positions relative to the major radius, phi in radians, v_par to the speed.
+       sc(1) = tol*MAX(ABS(y(1)), ABS(ynew(1)))
+       sc(2) = tol
+       sc(3) = sc(1)
+       sc(4) = tol*vscale
+       errn = SQRT(SUM((yerr/sc)**2)/4)
+       ! The rejection cap only guards against a NaN error norm.
+       IF (errn <= 1 .or. nrej >= 50) THEN
+          t = t + hs
+          IF (lclip) t = tout
+          y = ynew
+          k1 = k7
+          fac = MIN(5D0, MAX(0.2D0, 0.9D0*MAX(errn, 1D-10)**(-0.2D0)))
+          IF (nrej > 0) fac = MIN(fac, 1D0)
+          IF (lclip) THEN
+             h = MAX(h, ABS(hs)*fac)
+          ELSE
+             h = ABS(hs)*fac
+          END IF
+          nrej = 0
+       ELSE
+          h = ABS(hs)*MAX(0.2D0, 0.9D0*errn**(-0.2D0))
+          nrej = nrej + 1
+       END IF
+    END DO
+    END SUBROUTINE dopri5_advance
+
 END SUBROUTINE beams3d_follow_gc

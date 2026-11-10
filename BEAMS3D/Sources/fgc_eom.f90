@@ -77,9 +77,9 @@
           (phi_temp >= phimin-eps2) .and. (phi_temp <= phimax+eps2) .and. &
           (z_temp >= zmin-eps3) .and. (z_temp <= zmax+eps3)) THEN
          ! Get the gridpoint info
-         i = MIN(MAX(COUNT(raxis < r_temp),1),nr-1)
-         j = MIN(MAX(COUNT(phiaxis < phi_temp),1),nphi-1)
-         k = MIN(MAX(COUNT(zaxis < z_temp),1),nz-1)
+         i = grid_cell(raxis, nr, r_temp)
+         j = grid_cell(phiaxis, nphi, phi_temp)
+         k = grid_cell(zaxis, nz, z_temp)
          xparam = (r_temp - raxis(i)) * hri(i)
          yparam = (phi_temp - phiaxis(j)) * hpi(j)
          zparam = (z_temp - zaxis(k)) * hzi(k)
@@ -100,10 +100,14 @@
                          hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                          MODB4D(1,1,1,1),nr,nphi,nz)
          modb_temp = fval(1,1); gradb(1:3) = fval(1,2:4)
-         CALL R8HERM3FCN(ictE,1,1,fvalE,i,j,k,xparam,yparam,zparam,&
-                         hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
-                         POT4D(1,1,1,1),nr,nphi,nz)
-         Efield(1:3) =-fvalE(1,1:3)
+         IF (lpot) THEN
+            CALL R8HERM3FCN(ictE,1,1,fvalE,i,j,k,xparam,yparam,zparam,&
+                            hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
+                            POT4D(1,1,1,1),nr,nphi,nz)
+            Efield(1:3) =-fvalE(1,1:3)
+         ELSE
+            Efield = 0
+         END IF
          ! Fix grad(B) & grad(E)
          gradB(2)    = gradB(2)*rinv
          Efield(2)   = Efield(2)*rinv

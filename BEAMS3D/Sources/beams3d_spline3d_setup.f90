@@ -61,6 +61,7 @@
       CALL mpialloc(RHO4D, 8, nr, nphi, nz, myid_sharmem, 0, MPI_COMM_SHARMEM, win_RHO4D)
       CALL mpialloc(XRHO4D, 8, nr, nphi, nz, myid_sharmem, 0, MPI_COMM_SHARMEM, win_XRHO4D)
       CALL mpialloc(YRHO4D, 8, nr, nphi, nz, myid_sharmem, 0, MPI_COMM_SHARMEM, win_YRHO4D)
+      CALL mpialloc(S4D, 8, nr, nphi, nz, myid_sharmem, 0, MPI_COMM_SHARMEM, win_S4D)
 
       IF (.not. lvac) THEN
          CALL build(TE, TE4D, 0)
@@ -81,6 +82,7 @@
       CALL build(RHO_ARR, RHO4D, 16)
       CALL build(XRHO_ARR, XRHO4D, 17)
       CALL build(YRHO_ARR, YRHO4D, 18)
+      CALL build_cubic(S_ARR, S4D, 19)
       lpot = ANY(POT_ARR /= 0)
 #if defined(MPI_OPT)
       CALL MPI_BARRIER(MPI_COMM_SHARMEM, ier)
@@ -104,6 +106,7 @@
       CALL mpidealloc(RHO_ARR,win_RHO_ARR)
       CALL mpidealloc(XRHO_ARR,win_XRHO_ARR)
       CALL mpidealloc(YRHO_ARR,win_YRHO_ARR)
+      CALL mpidealloc(S_ARR,win_S_ARR)
 
       RETURN
 
@@ -128,6 +131,31 @@
          fout = F_spl%fspl
          CALL EZspline_free(F_spl,ierr)
       END SUBROUTINE build
+
+      ! The flux label of the collision step: a tricubic spline with natural
+      ! ends in R and Z and periodic in phi, the interpolant ASCOT5 (B_STS)
+      ! and SIMPLE build from the same grid. Unlike the Hermite fits it is C2.
+      SUBROUTINE build_cubic(fin, fout, k)
+         DOUBLE PRECISION, INTENT(in)    :: fin(nr,nphi,nz)
+         DOUBLE PRECISION, INTENT(inout) :: fout(8,nr,nphi,nz)
+         INTEGER, INTENT(in)             :: k
+         TYPE(EZspline3_r8) :: F_spl
+         INTEGER :: ierr
+         IF (MOD(k,nshar) /= myid_sharmem) RETURN
+         ierr = 0
+         CALL EZspline_init(F_spl,nr,nphi,nz,(/2,2/),bcs2,(/2,2/),ierr)
+         IF (ierr /=0) CALL handle_err(EZSPLINE_ERR,'beams3d_spline3d_setup: EZsplineinit',ierr)
+         F_spl%isHermite = 0
+         F_spl%x1 = raxis
+         F_spl%x2 = phiaxis
+         F_spl%x3 = zaxis
+         F_spl%bcval1min = 0; F_spl%bcval1max = 0
+         F_spl%bcval3min = 0; F_spl%bcval3max = 0
+         CALL EZspline_setup(F_spl,fin,ierr,EXACT_DIM=.true.)
+         IF (ierr /=0) CALL handle_err(EZSPLINE_ERR,'beams3d_spline3d_setup: EZspline_setup',ierr)
+         fout = F_spl%fspl
+         CALL EZspline_free(F_spl,ierr)
+      END SUBROUTINE build_cubic
 
 !-----------------------------------------------------------------------
 !     End Subroutine

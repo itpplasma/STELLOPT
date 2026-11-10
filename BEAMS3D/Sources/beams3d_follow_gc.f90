@@ -25,7 +25,7 @@ SUBROUTINE beams3d_follow_gc
                             nr_fida, nphi_fida, nz_fida, nenergy_fida, npitch_fida,raxis
     USE mpi_params ! MPI
     USE beams3d_write_par
-    USE beams3d_physics_mod, ONLY: beams3d_calc_dt
+    USE beams3d_physics_mod, ONLY: beams3d_calc_dt, coll_t0
     USE collision_operators, ONLY: SET_COULOMB_FACTOR
     USE safe_open_mod, ONLY: safe_open
     USE mpi_inc
@@ -154,6 +154,7 @@ SUBROUTINE beams3d_follow_gc
                     CALL SET_COULOMB_FACTOR(mymass,myZ,plasma_mass)
                     ! Now calc dt
                     CALL beams3d_calc_dt(1,q(1),q(2),q(3),dt)
+                    coll_t0 = t_nag
                     tf_nag = t_nag+dt
                     ndt = 0
                     DO ! Must do it this way becasue lbeam changes q(4) values
@@ -208,6 +209,7 @@ SUBROUTINE beams3d_follow_gc
                     CALL SET_COULOMB_FACTOR(mymass,myZ,plasma_mass)
                     ! Now calc dt
                     CALL beams3d_calc_dt(1,q(1),q(2),q(3),dt)
+                    coll_t0 = t_nag
                     tf_nag = t_nag+dt
                     ndt = 0
                     ! Setup DRKHVG parameters
@@ -283,6 +285,7 @@ SUBROUTINE beams3d_follow_gc
                     CALL SET_COULOMB_FACTOR(mymass,myZ,plasma_mass)
                     ! Now calc dt
                     CALL beams3d_calc_dt(1,q(1),q(2),q(3),dt)
+                    coll_t0 = t_nag
                     tf_nag = t_nag+dt
                     ndt = 0
                     ! Setup LSODE parameters

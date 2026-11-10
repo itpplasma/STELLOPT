@@ -86,6 +86,13 @@
 !                           binary, input and MPI rank count; each rank
 !                           derives its own stream from it. The default
 !                           (-1) seeds from the operating system.
+!            collision_noise  Noise of the gyrocentre collision step:
+!                           0 the random stream (default); 1 counter-based
+!                           normals of (seed, marker, step), the generator
+!                           of ASCOT5's and SIMPLE's COLLISION_NOISE, in an
+!                           Euler-Maruyama step in speed and pitch as ASCOT5's
+!                           mccc_gc_euler; 2 the same step without noise.
+!            collision_noise_seed  Seed of collision_noise = 1
 !            plasma_mass    Mean plasma mass in [kg]
 !            Zeff           <Z> = sum(n_k*Z_k^2)/sum(n_k*Z_k)
 !            plasma_Zmean   [Z] = sum(n_k*Z_k^2*(plasma_mass/m_k))/sum(n_k*Z_k)
@@ -121,7 +128,7 @@
                                B_kick_min, B_kick_max, freq_kick, E_kick,&
                                vr_start_in, vphi_start_in, vz_start_in, &
                                rho_fullorbit, nsub_fullorbit, duplicate_factor, &
-                               random_seed_in, &
+                               random_seed_in, collision_noise, collision_noise_seed, &
                                B_kick_min, B_kick_max, freq_kick, E_kick, &
                                rmin_fida, rmax_fida, zmin_fida, &
                                zmax_fida,phimin_fida, phimax_fida, &
@@ -246,6 +253,8 @@
       nsub_fullorbit = 8 ! Integration substeps per gyroperiod
       duplicate_factor = 1 ! No particle duplication
       random_seed_in = -1 ! Seed from the operating system
+      collision_noise = 0
+      collision_noise_seed = 0
 
       ! Distribution Function Defaults
       nrho_dist = 64
@@ -552,6 +561,8 @@
       WRITE(iunit_out,outint) 'NSUB_FULLORBIT',nsub_fullorbit
       WRITE(iunit_out,outint) 'DUPLICATE_FACTOR',duplicate_factor
       WRITE(iunit_out,outint) 'RANDOM_SEED_IN',random_seed_in
+      WRITE(iunit_out,outint) 'COLLISION_NOISE',collision_noise
+      WRITE(iunit_out,outint) 'COLLISION_NOISE_SEED',collision_noise_seed
       WRITE(iunit_out,'(A)') '!---------- Distribution Parameters ------------'
       WRITE(iunit_out,outint) 'NRHO_DIST',ns_prof1
       WRITE(iunit_out,outint) 'NTHETA_DIST',ns_prof2
@@ -735,6 +746,8 @@
       CALL MPI_BCAST(nsub_fullorbit,1,MPI_INTEGER, local_master, comm,istat)
       CALL MPI_BCAST(duplicate_factor,1,MPI_INTEGER, local_master, comm,istat)
       CALL MPI_BCAST(random_seed_in,1,MPI_INTEGER, local_master, comm,istat)
+      CALL MPI_BCAST(collision_noise,1,MPI_INTEGER, local_master, comm,istat)
+      CALL MPI_BCAST(collision_noise_seed,1,MPI_INTEGER8, local_master, comm,istat)
 
       CALL MPI_BCAST(nte,1,MPI_INTEGER, local_master, comm,istat)
       CALL MPI_BCAST(nne,1,MPI_INTEGER, local_master, comm,istat)

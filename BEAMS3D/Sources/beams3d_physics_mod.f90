@@ -48,6 +48,7 @@ MODULE beams3d_physics_mod
       USE fusion_mod, ONLY: DT_CROSS_SECTION, DD_CROSS_SECTION, &
                             DDHe3_CROSS_SECTION, DHe3_CROSS_SECTION
       USE mpi_params 
+      USE beams3d_globals, ONLY: collision_noise, collision_noise_seed
 
       !-----------------------------------------------------------------
       !     Module PARAMETERS
@@ -63,6 +64,9 @@ MODULE beams3d_physics_mod
       DOUBLE PRECISION, PRIVATE, PARAMETER :: one           = 1.0D0 ! 1.0
       DOUBLE PRECISION, PRIVATE, PARAMETER :: eps_0 = 8.8541878128D-12
       DOUBLE PRECISION, PRIVATE, PARAMETER :: hbar = 1.054571817D-34
+      ! Time at which the current marker started its gyrocentre phase; the
+      ! counter-based collision noise numbers its steps from there.
+      DOUBLE PRECISION :: coll_t0 = 0
 
       !-----------------------------------------------------------------
       !     SUBROUTINES
@@ -264,6 +268,78 @@ MODULE beams3d_physics_mod
       END SUBROUTINE profiles_at_s
 
       !-----------------------------------------------------------------
+      !     Function:      collision_noise_normal
+      !     Description:   Standard normal number that depends only on
+      !                    (seed, marker id, step, component): splitmix64
+      !                    mixing and Box-Muller, bit for bit the generator
+      !                    of ASCOT5 (src/simulate/mccc/collision_noise.h)
+      !                    and SIMPLE (src/collision_noise.c). Unsigned
+      !                    64-bit sums and products are done on 16-bit limbs
+      !                    so that no signed overflow occurs.
+      !-----------------------------------------------------------------
+      DOUBLE PRECISION FUNCTION collision_noise_normal(seed, id, step, component)
+         IMPLICIT NONE
+         INTEGER(8), INTENT(in) :: seed, id, step, component
+         INTEGER(8) :: key, a, b
+         DOUBLE PRECISION :: u1, u2
+         key = noise_mix(IEOR(seed, noise_mix(IEOR(id, noise_mix(IEOR(step, &
+               noise_mix(component)))))))
+         a = noise_mix(key)
+         b = noise_mix(IEOR(key, u64(INT(Z'D1B54A32',8), INT(Z'D192ED03',8))))
+         u1 = (REAL(ISHFT(a,-11),8) + 0.5D0)*2.0D0**(-53)
+         u2 = REAL(ISHFT(b,-11),8)*2.0D0**(-53)
+         collision_noise_normal = SQRT(-2.0D0*LOG(u1))*COS(6.283185307179586D0*u2)
+      END FUNCTION collision_noise_normal
+
+      INTEGER(8) FUNCTION noise_mix(z0)
+         IMPLICIT NONE
+         INTEGER(8), INTENT(in) :: z0
+         INTEGER(8) :: z
+         z = add64(z0, u64(INT(Z'9E3779B9',8), INT(Z'7F4A7C15',8)))
+         z = mul64(IEOR(z, ISHFT(z,-30)), u64(INT(Z'BF58476D',8), INT(Z'1CE4E5B9',8)))
+         z = mul64(IEOR(z, ISHFT(z,-27)), u64(INT(Z'94D049BB',8), INT(Z'133111EB',8)))
+         noise_mix = IEOR(z, ISHFT(z,-31))
+      END FUNCTION noise_mix
+
+      INTEGER(8) FUNCTION u64(hi, lo)
+         IMPLICIT NONE
+         INTEGER(8), INTENT(in) :: hi, lo
+         u64 = IOR(ISHFT(hi,32), lo)
+      END FUNCTION u64
+
+      INTEGER(8) FUNCTION add64(x, y)
+         IMPLICIT NONE
+         INTEGER(8), INTENT(in) :: x, y
+         INTEGER(8) :: c, d
+         INTEGER :: k
+         add64 = 0; c = 0
+         DO k = 0, 3
+            d = IBITS(x,16*k,16) + IBITS(y,16*k,16) + c
+            add64 = IOR(add64, ISHFT(IAND(d, 65535_8), 16*k))
+            c = ISHFT(d,-16)
+         END DO
+      END FUNCTION add64
+
+      INTEGER(8) FUNCTION mul64(x, y)
+         IMPLICIT NONE
+         INTEGER(8), INTENT(in) :: x, y
+         INTEGER(8) :: xl(0:3), yl(0:3), d, c
+         INTEGER :: i, k
+         DO k = 0, 3
+            xl(k) = IBITS(x,16*k,16); yl(k) = IBITS(y,16*k,16)
+         END DO
+         mul64 = 0; c = 0
+         DO k = 0, 3
+            d = c
+            DO i = 0, k
+               d = d + xl(i)*yl(k-i)
+            END DO
+            mul64 = IOR(mul64, ISHFT(IAND(d, 65535_8), 16*k))
+            c = ISHFT(d,-16)
+         END DO
+      END FUNCTION mul64
+
+      !-----------------------------------------------------------------
       !     Subroutine:    scatter_pitch
       !     Description:   Isotropic rotation of the velocity by the fixed
       !                    angle sqrt(4*dhh*dt) about a random azimuth. Its
@@ -317,6 +393,8 @@ MODULE beams3d_physics_mod
                           zdelth,zrang
          DOUBLE PRECISION :: Ebench  ! for ASCOT Benchmark
          DOUBLE PRECISION :: ni_temp(NION), dpar, drift, dhh, dpar_e, drift_e
+         DOUBLE PRECISION :: w_v, w_xi, v_cut
+         INTEGER(8) :: kstep
          ! For splines
          INTEGER :: i,j,k, l
          REAL*8 :: xparam, yparam, zparam
@@ -413,6 +491,38 @@ MODULE beams3d_physics_mod
             !     newspeed  New total speed
             !     vfrac     Ratio between new and old speed (helper)
             !-----------------------------------------------------------
+            IF (collision_noise > 0) THEN
+               ! ASCOT5's mccc_gc_euler: speed and pitch from the same state,
+               ! nu = 2*dhh, reflection at 0.1*v_te and at |xi| = 1.
+               w_v = zero; w_xi = zero
+               IF (collision_noise == 1) THEN
+                  kstep = NINT((t - coll_t0)/dt, 8) - 1
+                  w_v  = collision_noise_normal(collision_noise_seed, INT(myline,8), kstep, 3_8)
+                  w_xi = collision_noise_normal(collision_noise_seed, INT(myline,8), kstep, 4_8)
+               END IF
+               zeta_o = vll/speed
+               newspeed = speed + drift*dt + SQRT(2*dpar*dt)*w_v
+               v_cut = 0.1D0*SQRT(te_temp*e_charge/mymass)
+               IF (newspeed < v_cut) newspeed = 2*v_cut - newspeed
+               zeta = zeta_o - zeta_o*2*dhh*dt + SQRT((one - zeta_o*zeta_o)*2*dhh*dt)*w_xi
+               IF (ABS(zeta) > one) zeta = SIGN(one,zeta)*(one - ABS(MOD(ABS(zeta)+one,4.0D0) - 2))
+               de_e = -mymass*(speed*drift_e + dpar_e)*dt
+               de_i = -mymass*(speed*(drift - drift_e) + dpar - dpar_e)*dt
+               IF (newspeed < v_s) THEN
+                  l = MAX(MIN(CEILING(rho_temp*h1_prof),ns_prof1),1)
+                  ipower_prof(mybeam,l) = ipower_prof(mybeam,l) + half*mymass*speed*speed*weight(myline)
+                  ltherm = .true.
+               ELSE
+                  l = MAX(MIN(CEILING(rho_temp*h1_prof),ns_prof1),1)
+                  epower_prof(mybeam,l) = epower_prof(mybeam,l) + de_e*weight(myline)
+                  ipower_prof(mybeam,l) = ipower_prof(mybeam,l) + de_i*weight(myline)
+               END IF
+               speed = newspeed
+               vll = zeta*speed
+               moment = max(half*mymass*(speed*speed - vll*vll + vrot_perp*vrot_perp)*binv,zero)
+               q(4) = vll + vrot_para
+               RETURN
+            END IF
             CALL gauss_rand(1,zeta)  ! A random from a standard normal (1,1)
             newspeed = speed + drift*dt + SQRT(2*dpar*dt)*zeta
             ! Mean energy given to electrons and to ions over dt

@@ -47,6 +47,7 @@ test_beams3d_wall_interior:
 test_beams3d:
 	@echo "Beginning testing of BEAMS3D"
 	$(MAKE) test_beams3d_gyroradius
+	$(MAKE) test_beams3d_collision_noise
 	$(MAKE) test_beams3d_wall
 	$(MAKE) test_beams3d_wall_planar
 	$(MAKE) test_beams3d_coulomb_log
@@ -214,6 +215,9 @@ test_vmec:
 
 test_beams3d_gyroradius:
 	$(MAKE) -C ../BEAMS3D/Release -f ../makebeams3d test_gc2fo FLAGS="$(FLAGS_R) $(MOD1_PATH)" TYPE=release LOCTYPE=Release
+
+test_beams3d_collision_noise:
+	$(MAKE) -C ../BEAMS3D/Release -f ../makebeams3d test_collision_noise FLAGS="$(FLAGS_R) $(MOD1_PATH)" TYPE=release LOCTYPE=Release
 
 test_beams3d_birth_phase:
 	@cd $(BEAMS3D_TEST_DIR); cp wout_ORBITS.nc wout_BIRTH_PHASE.nc

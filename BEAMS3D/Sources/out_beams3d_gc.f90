@@ -134,7 +134,13 @@ SUBROUTINE out_beams3d_gc(t, q)
             CALL MPI_WIN_UNLOCK(0,win_dist5d_fida,ier)
 #endif
           END IF
-          IF (lcollision) CALL beams3d_physics_gc(t,q)
+          IF (lcollision) THEN
+             CALL beams3d_physics_gc(t,q)
+             ! Record the state after the collision step, as ASCOT5 and
+             ! SIMPLE do, so that a recorded point carries all kicks up to t.
+             vll_lines(mytdex, myline)    = q(4)
+             moment_lines(mytdex, myline) = moment
+          END IF
           IF (ltherm) THEN
              ndot_prof(mybeam,d1)   =   ndot_prof(mybeam,d1) + weight(myline)
              end_state(myline) = 1

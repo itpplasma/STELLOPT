@@ -48,6 +48,8 @@
    IF (EZspline_allocated(NE_spl_s))   CALL EZspline_free(NE_spl_s,ier)
    IF (EZspline_allocated(TI_spl_s))   CALL EZspline_free(TI_spl_S,ier)
    IF (EZspline_allocated(Vp_spl_s))   CALL EZspline_free(Vp_spl_S,ier)
+   IF (EZspline_allocated(ZEFF_spl_s)) CALL EZspline_free(ZEFF_spl_s,ier)
+   IF (EZspline_allocated(OMEG_spl_s)) CALL EZspline_free(OMEG_spl_s,ier)
    DO i = 1, NION
       IF (EZspline_allocated(NI_spl_s(i)))   CALL EZspline_free(NI_spl_s(i),ier)
    END DO

@@ -85,6 +85,7 @@
                                   RHO4D, XRHO4D, YRHO4D
       REAL(rprec), DIMENSION(:,:,:,:,:), POINTER :: NI5D
       REAL*8 ::      eps1, eps2, eps3
+      LOGICAL ::     lpot = .TRUE.
       REAL*8, parameter :: small = 1.e-10_ezspline_r8
       REAL*8, POINTER :: hr(:), hp(:), hz(:)
       REAL*8, POINTER :: hri(:), hpi(:), hzi(:)
@@ -93,5 +94,27 @@
       !                      TI_spl, ZEFF_spl, OMEG_spl, U_spl, POT_spl
       TYPE(EZspline1_r8) :: TE_spl_s, NE_spl_s, TI_spl_S, ZEFF_spl_s, OMEG_spl_s,  Vp_spl_s, POT_spl_s
       TYPE(EZspline1_r8), DIMENSION(NION) :: NI_spl_s
+
+      CONTAINS
+
+      PURE INTEGER FUNCTION grid_cell(axis, n, x)
+      ! Same result as MIN(MAX(COUNT(axis < x),1),n-1) for an ascending axis.
+      ! The uniform-grid guess makes this O(1) instead of O(n) per call.
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: n
+      REAL(rprec), INTENT(IN) :: axis(n), x
+      REAL(rprec) :: g
+      g = (x - axis(1)) / (axis(n) - axis(1)) * (n - 1)
+      g = MIN(MAX(g, 0.0_rprec), REAL(n - 2, rprec))
+      grid_cell = INT(g) + 1
+      DO WHILE (grid_cell < n - 1)
+         IF (axis(grid_cell + 1) >= x) EXIT
+         grid_cell = grid_cell + 1
+      END DO
+      DO WHILE (grid_cell > 1)
+         IF (axis(grid_cell) < x) EXIT
+         grid_cell = grid_cell - 1
+      END DO
+      END FUNCTION grid_cell
 
       END MODULE beams3d_grid

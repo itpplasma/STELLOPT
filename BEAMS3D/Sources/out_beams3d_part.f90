@@ -86,9 +86,9 @@ SUBROUTINE out_beams3d_part(t, q)
                           (q(3) >= zmin-eps3) .and. (q(3) <= zmax+eps3))
     rho_help = 0
     IF (.not.loutside_grid) THEN
-       i = MIN(MAX(COUNT(raxis < q(1)),1),nr-1)
-       j = MIN(MAX(COUNT(phiaxis < x0),1),nphi-1)
-       k = MIN(MAX(COUNT(zaxis < q(3)),1),nz-1)
+       i = grid_cell(raxis, nr, q(1))
+       j = grid_cell(phiaxis, nphi, x0)
+       k = grid_cell(zaxis, nz, q(3))
        xparam = (q(1) - raxis(i)) * hri(i)
        yparam = (x0 - phiaxis(j)) * hpi(j)
        zparam = (q(3) - zaxis(k)) * hzi(k)

@@ -253,6 +253,7 @@
 !-----------------------------------------------------------------------
 !     POT_ARR
 !----------------------------------------------------------------------- 
+      lpot = ANY(POT_ARR /= 0)
       CALL mpialloc(POT4D, 8, nr, nphi, nz, myid_sharmem, 0, MPI_COMM_SHARMEM, win_POT4D)
       IF (myid_sharmem == master) THEN
          CALL EZspline_init(F_spl,nr,nphi,nz,bcs1,bcs2,bcs3,ier)

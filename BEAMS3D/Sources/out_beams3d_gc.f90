@@ -22,6 +22,7 @@ SUBROUTINE out_beams3d_gc(t, q)
                              ns_prof1, ns_prof2, ns_prof3, ns_prof4, &
                              ns_prof5, mymass, mycharge, mybeam, end_state, &
                              dist5d_prof, dist5d_fida, win_dist5d, win_dist5d_fida, nsh_prof4, &
+                             dist5d_add, &
                              h2_prof, h3_prof, h4_prof, h5_prof, my_end, &
                              r_h, p_h, z_h, e_h, pi_h, E_by_v, h1_prof, &
                              previous_time, wall_hit_valid, wall_hit_field_valid, wall_hit_model, wall_hit_face, &
@@ -80,9 +81,9 @@ SUBROUTINE out_beams3d_gc(t, q)
                           (q(3) >= zmin-eps3) .and. (q(3) <= zmax+eps3))
     rho_help = 0
     IF (.not.loutside_grid) THEN
-       i = MIN(MAX(COUNT(raxis < q(1)),1),nr-1)
-       j = MIN(MAX(COUNT(phiaxis < x0),1),nphi-1)
-       k = MIN(MAX(COUNT(zaxis < q(3)),1),nz-1)
+       i = grid_cell(raxis, nr, q(1))
+       j = grid_cell(phiaxis, nphi, x0)
+       k = grid_cell(zaxis, nz, q(3))
        xparam = (q(1) - raxis(i)) * hri(i)
        yparam = (x0 - phiaxis(j)) * hpi(j)
        zparam = (q(3) - zaxis(k)) * hzi(k)
@@ -113,15 +114,7 @@ SUBROUTINE out_beams3d_gc(t, q)
           d4 = MAX(MIN(1+nsh_prof4+FLOOR(h4_prof*q(4)), ns_prof4), 1) ! vll
           d5 = MAX(MIN(CEILING(vperp*h5_prof         ), ns_prof5), 1) ! Vperp
           xw = weight(myline)*dt
-          ! Ranks share this array; serialize the read-modify-write.
-#if defined(MPI_OPT)
-          CALL MPI_WIN_LOCK(MPI_LOCK_EXCLUSIVE,0,0,win_dist5d,ier)
-#endif
-          dist5d_prof(mybeam,d1,d2,d3,d4,d5) = dist5d_prof(mybeam,d1,d2,d3,d4,d5) + xw
-#if defined(MPI_OPT)
-          CALL MPI_WIN_SYNC(win_dist5d,ier)
-          CALL MPI_WIN_UNLOCK(0,win_dist5d,ier)
-#endif
+          CALL dist5d_add(mybeam,d1,d2,d3,d4,d5,xw)
           IF (lfidasim_cyl) THEN
              !x0 = MOD(q(2), phimax_fida)
              !IF (x0 < 0) x0 = x0 + phimax_fida

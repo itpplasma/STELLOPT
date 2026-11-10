@@ -559,38 +559,14 @@ MODULE beams3d_physics_mod
             ! Evaluate the Splines
             CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
-                            TE4D(1,1,1,1),nr,nphi,nz)
-            te_temp = max(fval(1),zero)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
-                            hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
-                            NE4D(1,1,1,1),nr,nphi,nz)
-            ne_temp = max(fval(1),zero)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
-                            hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
-                            TI4D(1,1,1,1),nr,nphi,nz)
-            ti_temp = max(fval(1),zero)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
-                            hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
-                            ZEFF4D(1,1,1,1),nr,nphi,nz)
-            zeff_temp = max(fval(1),one)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
-                            hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             RHO4D(1,1,1,1),nr,nphi,nz)
             rho_temp = max(fval(1),zero)
             CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             BR4D(1,1,1,1),nr,nphi,nz)
             br_temp = fval(1)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
-                            hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
-                            OMEG4D(1,1,1,1),nr,nphi,nz)
-            omeg_temp = fval(1)
-            DO l = 1, NION
-               CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
-                  hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
-                  NI5D(1,1,1,1,l),nr,nphi,nz)
-               ni_temp(l) = max(fval(1),zero) !Set to one to prevent NaN Zeff later on
-            END DO
+            CALL profiles_at_s(rho_temp*rho_temp,te_temp,ne_temp,ti_temp, &
+                               zeff_temp,omeg_temp,ni_temp)
             IF (lion_mix) CALL set_local_ion_mix(ni_temp)
             CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&

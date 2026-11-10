@@ -13,7 +13,7 @@ MODULE beams3d_physics_mod
       USE stel_kinds, ONLY: rprec
       USE beams3d_runtime, ONLY: lneut, pi, pi2, dt, lverb, ADAS_ERR, &
                                  dt_save, lbbnbi, weight, ndt, &
-                                 ndt_max, npoinc, lendt_m, te_col_min, &
+                                 ndt_max, npoinc, lendt_m, fixed_dt, te_col_min, &
                                  NION, NI_AUX_M, NI_AUX_Z, vll_start, charge_beams
       USE beams3d_lines, ONLY: R_lines, Z_lines, PHI_lines, &
                                vr_lines, vphi_lines, vz_lines, &
@@ -2467,12 +2467,14 @@ MODULE beams3d_physics_mod
          ! Place bounds on dt
          dt_temp = MAX(dt_temp,1D-10)
          dt_temp = MIN(dt_temp,10D-8)
+         IF (fixed_dt > 0 .and. TYPE == 1) dt_temp = fixed_dt
 
          ! Handle negative dt
          dt_temp = SIGN(dt_temp,my_end)
 
          ! Calculate number of integration timesteps per output timestep
-         ndt_max = CEILING(my_end/(dt_temp*NPOINC))
+         ! The tolerance keeps rounding in T_END = N*dt from adding a step.
+         ndt_max = CEILING(my_end/(dt_temp*NPOINC) - 1D-9)
           
          ! Adjust dt to match ndt_max
          dt_out = my_end/(ndt_max*NPOINC)

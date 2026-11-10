@@ -86,6 +86,11 @@
 !                           binary, input and MPI rank count; each rank
 !                           derives its own stream from it. The default
 !                           (-1) seeds from the operating system.
+!            fixed_dt       Step [s] between collision kicks and trajectory
+!                           checks for every gyrocentre marker, as ASCOT5's
+!                           FIXEDSTEP_USERDEFINED; T_END_IN should be a
+!                           multiple of NPOINC*fixed_dt. 0 (default) derives
+!                           the step from lendt_m and the parallel speed.
 !            collision_noise  Noise of the gyrocentre collision step:
 !                           0 the random stream (default); 1 counter-based
 !                           normals of (seed, marker, step), the generator
@@ -124,7 +129,7 @@
                                therm_factor, fusion_scale, &
                                nrho_dist, ntheta_dist, &
                                nzeta_dist, nphi_dist, nvpara_dist, nvperp_dist, &
-                               partvmax, rho_max_dist, lendt_m, te_col_min, &
+                               partvmax, rho_max_dist, lendt_m, fixed_dt, te_col_min, &
                                B_kick_min, B_kick_max, freq_kick, E_kick,&
                                vr_start_in, vphi_start_in, vz_start_in, &
                                rho_fullorbit, nsub_fullorbit, duplicate_factor, &
@@ -240,6 +245,7 @@
       plasma_mass = 1.6726219E-27 ! Assume Hydrogen
       therm_factor = 1.5 ! Factor at which to thermalize particles
       lendt_m = 0.05 ! Max distance a particle travels
+      fixed_dt = 0 ! > 0: the same step for every marker
       te_col_min = 10 ! Min electron temperature to consider in collisions
 
       ! Kick model defaults
@@ -557,6 +563,7 @@
       WRITE(iunit_out,outint) 'NPOINC',npoinc
       WRITE(iunit_out,outint) 'NPARTICLES_START',nparticles_start
       WRITE(iunit_out,outflt) 'LENDT_M',lendt_m
+      WRITE(iunit_out,outflt) 'FIXED_DT',fixed_dt
       WRITE(iunit_out,outflt) 'RHO_FULLORBIT',rho_fullorbit
       WRITE(iunit_out,outint) 'NSUB_FULLORBIT',nsub_fullorbit
       WRITE(iunit_out,outint) 'DUPLICATE_FACTOR',duplicate_factor
@@ -742,6 +749,7 @@
       CALL MPI_BCAST(cyl2flx_lbail_outside,1,MPI_LOGICAL,local_master,comm,istat)
       CALL MPI_BCAST(plasma_mass,1,MPI_REAL8, local_master, comm,istat)
       CALL MPI_BCAST(lendt_m,1,MPI_REAL8, local_master, comm,istat)
+      CALL MPI_BCAST(fixed_dt,1,MPI_REAL8, local_master, comm,istat)
       CALL MPI_BCAST(rho_fullorbit,1,MPI_REAL8, local_master, comm,istat)
       CALL MPI_BCAST(nsub_fullorbit,1,MPI_INTEGER, local_master, comm,istat)
       CALL MPI_BCAST(duplicate_factor,1,MPI_INTEGER, local_master, comm,istat)

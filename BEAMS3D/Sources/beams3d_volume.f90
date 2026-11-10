@@ -22,12 +22,11 @@
 !     Local Variables
 !        i           Helper index
 !-----------------------------------------------------------------------
-      INTEGER ::  i, nfp, ns_local, ier
+      INTEGER ::  i, j, k, l, lo, hi, nfp, ns_local, ier
       REAL(rprec) :: dR, dZ, dphi, s1, s2, ds, a1, a2, detinv
       REAL(rprec), DIMENSION(4) :: fmat
       REAL(rprec), DIMENSION(4,4) :: A, B
       REAL(rprec), DIMENSION(:), ALLOCATABLE :: slocal, dVds, Vtemp
-      REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE :: dV3d, temp
 !-----------------------------------------------------------------------
 !     Begin Subroutine
 !-----------------------------------------------------------------------
@@ -38,10 +37,6 @@
       dR = (rmax-rmin)/nr
       dZ = (zmax-zmin)/nz
       dphi = (phimax-phimin)/nphi
-      ALLOCATE(dV3d(nr,nphi,nz),temp(nr,nphi,nz))
-      DO i = 1, nr
-         dV3d(i,:,:) = raxis(i)*dR*dZ*dphi
-      END DO
 
       ! Create an Saxis
       ALLOCATE(slocal(ns_local))
@@ -49,20 +44,33 @@
          slocal(i) = REAL(i-1)/REAL(ns_local-1)
       END DO
 
-      ! Calculated Volume profile     
+      ! Calculated Volume profile: Vtemp(l) is the volume with S <= slocal(l).
+      ! One pass puts each grid point into the first level that contains it,
+      ! instead of one masked sum over the whole grid per level.
       ALLOCATE(Vtemp(ns_local))
-      !PRINT *,'VOLUME'
       Vtemp = 0
-      DO i = 2, ns_local
-         s1 = slocal(i-1)
-         s2 = slocal(i)
-         ds   = s2-s1
-         temp = 0
-         WHERE(S_ARR<=s2) temp = dV3d
-         Vtemp(i) = SUM(SUM(SUM(temp,DIM=3),DIM=2),DIM=1)*nfp
-         !PRINT *,slocal(i),Vtemp(i)
+      DO k = 1, nz
+         DO j = 1, nphi
+            DO i = 1, nr
+               IF (.not. (S_ARR(i,j,k) <= slocal(ns_local))) CYCLE
+               lo = 1; hi = ns_local
+               DO WHILE (lo < hi)
+                  l = (lo + hi)/2
+                  IF (S_ARR(i,j,k) <= slocal(l)) THEN
+                     hi = l
+                  ELSE
+                     lo = l + 1
+                  END IF
+               END DO
+               Vtemp(lo) = Vtemp(lo) + raxis(i)
+            END DO
+         END DO
       END DO
-      DEALLOCATE(dV3d, temp)
+      DO l = 2, ns_local
+         Vtemp(l) = Vtemp(l) + Vtemp(l-1)
+      END DO
+      Vtemp = Vtemp*dR*dZ*dphi*nfp
+      Vtemp(1) = 0
 
       ! We fit a 3rd order polynomial to the volume
       ! f  = a0 + a1*s + a2*s*s + a3*s*s*s

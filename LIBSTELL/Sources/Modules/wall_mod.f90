@@ -313,12 +313,28 @@
       IF (ldebug) WRITE(6, *) 'Vertex & face allocating & reading. MPI Rank: ', shar_rank
       IF (istat/=0) RETURN
       IF (shar_rank == 0) THEN
-         DO ik = 1, nvertex
-            READ(iunit,*) vertex(ik,1),vertex(ik,2),vertex(ik,3)
-         END DO
-         DO ik=1,nface
-            READ(iunit,*) face(ik,1),face(ik,2),face(ik,3)
-         END DO
+         istat = 1
+         IF (.not. lwall_acc) THEN
+            CLOSE(iunit)
+            CALL read_mesh_stream(filename,3,istat)
+            IF (istat /= 0) THEN
+               CALL safe_open(iunit,istat,TRIM(filename),'old','formatted')
+               IF (istat/=0) RETURN
+               DO ik = 1, 3
+                  READ(iunit,'(A)')
+               END DO
+               istat = 1
+            END IF
+         END IF
+         IF (istat /= 0) THEN
+            DO ik = 1, nvertex
+               READ(iunit,*) vertex(ik,1),vertex(ik,2),vertex(ik,3)
+            END DO
+            DO ik=1,nface
+               READ(iunit,*) face(ik,1),face(ik,2),face(ik,3)
+            END DO
+         END IF
+         istat = 0
        END IF
 
        ! Check for 0-based face indices and correct to 1-based
@@ -526,6 +542,92 @@
       lwall_loaded = .true.
       RETURN
       END SUBROUTINE wall_load_txt
+
+      SUBROUTINE read_mesh_stream(filename,nskip,istat)
+      !-----------------------------------------------------------------------
+      ! read_mesh_stream: Reads the vertex and face lists that follow nskip
+      !                   header lines into vertex and face
+      !-----------------------------------------------------------------------
+      ! List-directed READs cost about 2 us per number, minutes for a CAD
+      ! wall. The C parsers round the same way as the Fortran runtime, so the
+      ! values are identical. istat /= 0 means the text is not plain
+      ! whitespace-separated numbers and the caller reads it the old way.
+      !-----------------------------------------------------------------------
+      USE ISO_C_BINDING
+      IMPLICIT NONE
+      CHARACTER(LEN=*), INTENT(in) :: filename
+      INTEGER, INTENT(in)          :: nskip
+      INTEGER, INTENT(out)         :: istat
+      INTERFACE
+         FUNCTION c_strtod(str,endptr) BIND(C,name='strtod')
+            IMPORT :: C_PTR, C_DOUBLE
+            TYPE(C_PTR), VALUE :: str
+            TYPE(C_PTR)        :: endptr
+            REAL(C_DOUBLE)     :: c_strtod
+         END FUNCTION c_strtod
+         FUNCTION c_strtol(str,endptr,base) BIND(C,name='strtol')
+            IMPORT :: C_PTR, C_LONG, C_INT
+            TYPE(C_PTR), VALUE    :: str
+            TYPE(C_PTR)           :: endptr
+            INTEGER(C_INT), VALUE :: base
+            INTEGER(C_LONG)       :: c_strtol
+         END FUNCTION c_strtol
+      END INTERFACE
+      CHARACTER(KIND=C_CHAR), ALLOCATABLE, TARGET :: buf(:)
+      TYPE(C_PTR) :: p, endp
+      INTEGER(KIND=8) :: nbyte, pos
+      INTEGER :: iu, n, ik, j
+
+      OPEN(NEWUNIT=iu,FILE=TRIM(filename),ACCESS='STREAM',FORM='UNFORMATTED', &
+           STATUS='OLD',ACTION='READ',IOSTAT=istat)
+      IF (istat /= 0) RETURN
+      INQUIRE(UNIT=iu,SIZE=nbyte)
+      ALLOCATE(buf(nbyte+1),STAT=istat)
+      IF (istat == 0) READ(iu,IOSTAT=istat) buf(1:nbyte)
+      CLOSE(iu)
+      IF (istat /= 0) RETURN
+      buf(nbyte+1) = C_NULL_CHAR
+      pos = 1; n = 0
+      DO WHILE (n < nskip .and. pos <= nbyte)
+         IF (buf(pos) == C_NEW_LINE) n = n + 1
+         pos = pos + 1
+      END DO
+      istat = -1
+      IF (n < nskip) RETURN
+      DO ik = 1, nvertex
+         DO j = 1, 3
+            p = C_LOC(buf(pos))
+            vertex(ik,j) = c_strtod(p,endp)
+            IF (.not. advance()) RETURN
+         END DO
+         IF (.not. line_end()) RETURN
+      END DO
+      DO ik = 1, nface
+         DO j = 1, 3
+            p = C_LOC(buf(pos))
+            face(ik,j) = INT(c_strtol(p,endp,10_C_INT))
+            IF (.not. advance()) RETURN
+         END DO
+         IF (.not. line_end()) RETURN
+      END DO
+      istat = 0
+      CONTAINS
+      LOGICAL FUNCTION advance()
+         INTEGER(C_INTPTR_T) :: nread
+         nread = TRANSFER(endp,nread) - TRANSFER(p,nread)
+         pos = pos + nread
+         advance = nread > 0
+      END FUNCTION advance
+      LOGICAL FUNCTION line_end()
+         ! READ(*) of three values discards the rest of the line; accept only
+         ! blanks there, so the stream stays aligned with the records.
+         DO WHILE (buf(pos) == ' ' .or. buf(pos) == C_HORIZONTAL_TAB .or. &
+                   buf(pos) == C_CARRIAGE_RETURN)
+            pos = pos + 1
+         END DO
+         line_end = buf(pos) == C_NEW_LINE .or. buf(pos) == C_NULL_CHAR
+      END FUNCTION line_end
+      END SUBROUTINE read_mesh_stream
 
       SUBROUTINE wall_load_mn(Rmn,Zmn,xm,xn,mn,nu,nv,verb,comm,Rmn2,Zmn2)
       !-----------------------------------------------------------------------

@@ -1214,111 +1214,106 @@ MODULE beams3d_physics_mod
       !                    gyrocenter.
       !-----------------------------------------------------------------
       SUBROUTINE beams3d_part2gc(q)
+         !--------------------------------------------------------------
+         !     Particle (R,phi,Z,vR,vphi,vZ) to gyrocentre (R,phi,Z,vll):
+         !     ASCOT5's first-order transformation (gctransform.c,
+         !     Littlejohn), without relativity. The position takes the
+         !     Larmor shift and vll and the moment their first-order
+         !     corrections, so the gyrocentre keeps the particle energy to
+         !     second order in the Larmor radius. The field and its
+         !     gradient are taken at the particle.
+         !--------------------------------------------------------------
          USE beams3d_grid
-
-         !--------------------------------------------------------------
-         !     Input Parameters
-         !          q            (1:6) = (R,phi,Z,vR,Vphi,Vz)
-         !--------------------------------------------------------------
          IMPLICIT NONE
          DOUBLE PRECISION, INTENT(inout) :: q(6)
-
-         !--------------------------------------------------------------
-         !     Local parameters
-         !--------------------------------------------------------------
-         REAL*8, PARAMETER :: one = 1
-
-         !--------------------------------------------------------------
-         !     Local variables
-         !--------------------------------------------------------------
-         INTEGER          :: ier
-         DOUBLE PRECISION :: r_temp, phi_temp, z_temp, x, y, &
-                             br_temp, bp_temp, bz_temp, modb_temp, &
-                             bx_temp, by_temp, binv, &
-                             rho(3), vperp, vx, vy, vz, vll
-         ! For splines
-         INTEGER :: i,j,k
-         REAL*8 :: xparam, yparam, zparam
-         INTEGER, parameter :: ict(8)=(/1,0,0,0,0,0,0,0/)
-         REAL*8 :: fval(1)
-
-         !--------------------------------------------------------------
-         !     Begin Subroutine
-         !--------------------------------------------------------------
-         ! Handle inputs
-         ier = 0
+         INTEGER :: i, j, k
+         INTEGER, PARAMETER :: ict(8) = (/1,1,1,1,0,0,0,0/)
+         REAL*8 :: xparam, yparam, zparam, fval(1,4)
+         DOUBLE PRECISION :: phi_temp, B_dB(12), Bx(12), c, sn, r, bn, &
+                             bhat(3), gradB(3), curlB(3), tau, nb(9), kappa(3), &
+                             xyz(3), pxyz(3), ppar0, pperp(3), mu0, perphat(3), &
+                             rhohat(3), a1, rho0, ppar1, mu1, temp(3), bkap
          phi_temp = MOD(q(2),phimax)
          IF (phi_temp < 0) phi_temp = phi_temp + phimax
-         r_temp = q(1)
-         z_temp = q(3)
-         x = q(1)*cos(q(2))
-         y = q(1)*sin(q(2))
-         vx = q(4)*cos(q(2))-q(5)*sin(q(2))
-         vy = q(4)*sin(q(2))+q(5)*cos(q(2))
-         vz = q(6)
-
-
-         ! Eval Spline
-         i = grid_cell(raxis, nr, r_temp)
+         r = q(1)
+         i = grid_cell(raxis, nr, r)
          j = grid_cell(phiaxis, nphi, phi_temp)
-         k = grid_cell(zaxis, nz, z_temp)
-         xparam = (r_temp - raxis(i)) * hri(i)
+         k = grid_cell(zaxis, nz, q(3))
+         xparam = (r - raxis(i)) * hri(i)
          yparam = (phi_temp - phiaxis(j)) * hpi(j)
-         zparam = (z_temp - zaxis(k)) * hzi(k)
+         zparam = (q(3) - zaxis(k)) * hzi(k)
          CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
-                         hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
-                         BR4D(1,1,1,1),nr,nphi,nz)
-         br_temp = fval(1)
+                         hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),BR4D(1,1,1,1),nr,nphi,nz)
+         B_dB(1:4) = fval(1,1:4)
          CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
-                         hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
-                         BPHI4D(1,1,1,1),nr,nphi,nz)
-         bp_temp = fval(1)
+                         hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),BPHI4D(1,1,1,1),nr,nphi,nz)
+         B_dB(5:8) = fval(1,1:4)
          CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
-                         hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
-                         BZ4D(1,1,1,1),nr,nphi,nz)
-         bz_temp = fval(1)
-         CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
-                         hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
-                         MODB4D(1,1,1,1),nr,nphi,nz)
-         modb_temp = fval(1)
-         bx_temp = br_temp*cos(q(2))-bp_temp*sin(q(2))
-         by_temp = br_temp*sin(q(2))+bp_temp*cos(q(2))
-         binv = one/modb_temp
-
-         ! First calculate vll and vperp
-         vll = ( vx * bx_temp + &
-                  vy * by_temp + &
-                  vz * bz_temp  ) * binv
-         vperp = SQRT(ABS(vx*vx+vy*vy+vz*vz - vll*vll))
-
-         ! F_em = q v x B
-         ! rho is F_em norm
-         rho(1) = vy*bz_temp - vz*by_temp
-         rho(2) = vz*bx_temp - vx*bz_temp
-         rho(3) = vx*by_temp - vy*bx_temp
-         IF (mycharge < 0) rho = -rho
-         rho = rho / SQRT(SUM(rho*rho))
-
-         ! Now calculate the gyroradius
-         !    rg = m * vperp / (q * B)
-         !    vperp = sqrt(v.v-vll*vll)
-         rho   = rho*mymass*vperp*binv/mycharge !Rg
-         x     = x + rho(1)
-         y     = y + rho(2)
-         q(3)  = q(3)+rho(3)
-         q(1)  = SQRT(x*x+y*y)
-         q(2)  = ATAN2(y,x)
-         q(4)  = vll
-         q(5)  = 0
-         q(6)  = 0
-
-         ! Now calculate magnetic moment
-         !    mu = m*vperp^2/(2*B)=m*(v.v-vll.vll)/(2*B)
-         moment = 0.5*mymass*vperp*vperp*binv
-         moment = MAX(moment,10*TINY(moment))
-
-         RETURN
-
+                         hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),BZ4D(1,1,1,1),nr,nphi,nz)
+         B_dB(9:12) = fval(1,1:4)
+         ! math_jac_rpz2xyz: field and Cartesian Jacobian at azimuth q(2)
+         c = COS(q(2)); sn = SIN(q(2))
+         Bx(1) = B_dB(1)*c - B_dB(5)*sn
+         Bx(5) = B_dB(1)*sn + B_dB(5)*c
+         Bx(9) = B_dB(9)
+         temp = (/ B_dB(2)*c - B_dB(6)*sn, B_dB(3)*c - B_dB(7)*sn, B_dB(4)*c - B_dB(8)*sn /)
+         Bx(2) = temp(1)*c - temp(2)*sn/r + (B_dB(1)*sn + B_dB(5)*c)*sn/r
+         Bx(3) = temp(1)*sn + temp(2)*c/r - (B_dB(1)*sn + B_dB(5)*c)*c/r
+         Bx(4) = temp(3)
+         temp = (/ B_dB(2)*sn + B_dB(6)*c, B_dB(3)*sn + B_dB(7)*c, B_dB(4)*sn + B_dB(8)*c /)
+         Bx(6) = temp(1)*c - temp(2)*sn/r - (B_dB(1)*c - B_dB(5)*sn)*sn/r
+         Bx(7) = temp(1)*sn + temp(2)*c/r + (B_dB(1)*c - B_dB(5)*sn)*c/r
+         Bx(8) = temp(3)
+         Bx(10) = B_dB(10)*c - B_dB(11)*sn/r
+         Bx(11) = B_dB(10)*sn + B_dB(11)*c/r
+         Bx(12) = B_dB(12)
+         bn = SQRT(Bx(1)**2 + Bx(5)**2 + Bx(9)**2)
+         bhat = (/ Bx(1), Bx(5), Bx(9) /)/bn
+         gradB(1) = bhat(1)*Bx(2) + bhat(2)*Bx(6) + bhat(3)*Bx(10)
+         gradB(2) = bhat(1)*Bx(3) + bhat(2)*Bx(7) + bhat(3)*Bx(11)
+         gradB(3) = bhat(1)*Bx(4) + bhat(2)*Bx(8) + bhat(3)*Bx(12)
+         curlB = (/ Bx(11) - Bx(8), Bx(4) - Bx(10), Bx(6) - Bx(3) /)
+         tau = DOT_PRODUCT(bhat, curlB)/bn
+         nb(1) = (Bx(2)  - gradB(1)*bhat(1))/bn
+         nb(2) = (Bx(3)  - gradB(1)*bhat(2))/bn
+         nb(3) = (Bx(4)  - gradB(1)*bhat(3))/bn
+         nb(4) = (Bx(6)  - gradB(2)*bhat(1))/bn
+         nb(5) = (Bx(7)  - gradB(2)*bhat(2))/bn
+         nb(6) = (Bx(8)  - gradB(2)*bhat(3))/bn
+         nb(7) = (Bx(10) - gradB(3)*bhat(1))/bn
+         nb(8) = (Bx(11) - gradB(3)*bhat(2))/bn
+         nb(9) = (Bx(12) - gradB(3)*bhat(3))/bn
+         bkap = DOT_PRODUCT(bhat, gradB)
+         kappa(1) = (bhat(1)*Bx(2) + bhat(2)*Bx(6) + bhat(3)*Bx(10) - bkap*bhat(1))/bn
+         kappa(2) = (bhat(1)*Bx(3) + bhat(2)*Bx(7) + bhat(3)*Bx(11) - bkap*bhat(2))/bn
+         kappa(3) = (bhat(1)*Bx(4) + bhat(2)*Bx(8) + bhat(3)*Bx(12) - bkap*bhat(3))/bn
+         xyz  = (/ r*c, r*sn, q(3) /)
+         pxyz = mymass*(/ q(4)*c - q(5)*sn, q(4)*sn + q(5)*c, q(6) /)
+         ppar0 = DOT_PRODUCT(pxyz, bhat)
+         pperp = pxyz - ppar0*bhat
+         mu0 = DOT_PRODUCT(pperp, pperp)/(2*mymass*bn)
+         perphat = pperp/SQRT(DOT_PRODUCT(pperp, pperp))
+         IF (mycharge < 0) perphat = -perphat
+         rhohat = (/ bhat(2)*perphat(3) - bhat(3)*perphat(2), &
+                     bhat(3)*perphat(1) - bhat(1)*perphat(3), &
+                     bhat(1)*perphat(2) - bhat(2)*perphat(1) /)
+         a1 = -0.5D0*( 2*( rhohat(1)*perphat(1)*nb(1) + rhohat(2)*perphat(2)*nb(5) &
+                         + rhohat(3)*perphat(3)*nb(9) ) &
+                     + (rhohat(1)*perphat(2) + rhohat(2)*perphat(1))*(nb(2) + nb(4)) &
+                     + (rhohat(1)*perphat(3) + rhohat(3)*perphat(1))*(nb(3) + nb(7)) &
+                     + (rhohat(2)*perphat(3) + rhohat(3)*perphat(2))*(nb(6) + nb(8)) )
+         rho0 = SQRT(2*mymass*mu0/bn)/ABS(mycharge)
+         xyz = xyz - rho0*rhohat
+         ppar1 = -ppar0*rho0*DOT_PRODUCT(rhohat, kappa) + (mymass*mu0/mycharge)*(tau + a1)
+         temp = mu0*gradB + ppar0*ppar0*kappa/mymass
+         mu1 = (rho0/bn)*DOT_PRODUCT(rhohat, temp) - (ppar0*mu0/(mycharge*bn))*(tau + a1)
+         q(1) = SQRT(xyz(1)**2 + xyz(2)**2)
+         q(2) = ATAN2(xyz(2), xyz(1))
+         q(3) = xyz(3)
+         q(4) = (ppar0 + ppar1)/mymass
+         q(5) = 0
+         q(6) = 0
+         moment = MAX(ABS(mu0 + mu1), 10*TINY(mu0))
       END SUBROUTINE beams3d_part2gc
 
       !-----------------------------------------------------------------

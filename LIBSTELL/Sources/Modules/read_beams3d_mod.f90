@@ -62,7 +62,7 @@ CONTAINS
       CHARACTER(*), INTENT(in) :: filename
       INTEGER, INTENT(inout) :: comm_read
       INTEGER, INTENT(inout) :: istat
-      INTEGER :: mylocalid, nlocal
+      INTEGER :: mylocalid, nlocal, iopen
       LOGICAL :: lexist
       istat = 0
 
@@ -84,17 +84,30 @@ CONTAINS
 
       ! Read HDF5 File
 #if defined(LHDF5)
+      iopen = 0
       IF (mylocalid == master) THEN
-         CALL open_hdf5(TRIM(filename),fid,istat,LREADONLY=.true.)
-         CALL read_scalar_hdf5(fid,'nr',istat,INTVAR=nr)
-         CALL read_scalar_hdf5(fid,'nphi',istat,INTVAR=nphi)
-         CALL read_scalar_hdf5(fid,'nz',istat,INTVAR=nz)
+         CALL open_hdf5(TRIM(filename),fid,iopen,LREADONLY=.true.)
+         IF (iopen == 0) THEN
+            CALL read_scalar_hdf5(fid,'nr',istat,INTVAR=nr)
+            CALL read_scalar_hdf5(fid,'nphi',istat,INTVAR=nphi)
+            CALL read_scalar_hdf5(fid,'nz',istat,INTVAR=nz)
+         END IF
       END IF
 #else
       IF (mylocalid == 0) WRITE(6,*) " ERROR: HDF5 Required for this functionality."
       istat = -5
       RETURN
 #endif
+
+      ! Without this every process would go on with an empty grid.
+#if defined(MPI_OPT)
+      CALL MPI_BCAST(iopen, 1, MPI_INTEGER, master, comm_read, istat)
+#endif
+      IF (iopen /= 0) THEN
+         istat = -1
+         IF (mylocalid == master) WRITE(6,*) " ERROR: Could not open file: "//TRIM(filename)
+         RETURN
+      END IF
 
       ! Broadcast arrays sizes and allocate arrays.
 #if defined(MPI_OPT)

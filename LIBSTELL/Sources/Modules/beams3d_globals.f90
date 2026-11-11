@@ -25,6 +25,7 @@
                  lfusion_tritium, lkick, lgcsim, lbeam, lbbnbi
       INTEGER :: npoinc, nbeams, nparticles_start,duplicate_factor, &
                  nsub_fullorbit, random_seed_in, collision_noise, &
+                 lcfs_nu, lcfs_nv, &
                  mumaterial_niter, mumaterial_lamthresh, mumaterial_depth, mumaterial_leaf
       INTEGER(8) :: collision_noise_seed
       CHARACTER(LEN=8) :: spline_type

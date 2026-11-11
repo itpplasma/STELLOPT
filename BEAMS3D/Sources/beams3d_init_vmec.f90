@@ -16,6 +16,7 @@
       USE vmec_utils
       USE virtual_casing_mod, pi2_vc => pi2
       USE beams3d_runtime
+      USE beams3d_globals, ONLY: lcfs_nu, lcfs_nv
       USE beams3d_grid, ONLY: raxis_g => raxis, phiaxis, &
                                  zaxis_g => zaxis, nr, nphi, nz, &
                                  rmin, rmax, zmin, zmax, phimin, &
@@ -192,8 +193,8 @@
       IF (lcreate_wall) THEN
          lvessel = .TRUE.  ! Do this so the other parts of the code know there is a vessel
          k = ns
-         i = 120
-         j = 180
+         i = lcfs_nu
+         j = lcfs_nv
          lverb_wall=.false.
          IF (lverb) WRITE(6,'(A)')        '   GENERATING WALL FROM BOUNDARY HARMONICS'
          IF (lasym) THEN

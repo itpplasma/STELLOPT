@@ -863,15 +863,15 @@ SUBROUTINE write_fidasim_equilibrium
                 xparam = (raxis_fida(l) - raxis(i)) * hri(i)
                 yparam = (x0 - phiaxis(j)) * hpi(j)
                 zparam = (zaxis_fida(n) - zaxis(k)) * hzi(k)
-                CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+                CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                     hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                     BR4D(1,1,1,1),nr,nphi,nz)
                 rtemp(l,n,m) = fval(1)
-                CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+                CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                     hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                     BPHI4D(1,1,1,1),nr,nphi,nz)
                 rtemp2(l,n,m) = fval(1)
-                CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+                CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                     hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                     BZ4D(1,1,1,1),nr,nphi,nz)
                 rtemp3(l,n,m) = fval(1)
@@ -935,7 +935,7 @@ SUBROUTINE write_fidasim_equilibrium
                     yparam = (x0 - phiaxis(j)) * hpi(j)
                     zparam = (zaxis_fida(n) - zaxis(k)) * hzi(k)
                     ! Evaluate the Splines
-                    CALL R8HERM3FCN(ictE,1,1,fvalE,i,j,k,xparam,yparam,zparam,& !evaluate at grid points
+                    CALL grid_eval(ictE,1,1,fvalE,i,j,k,xparam,yparam,zparam,& !evaluate at grid points
                     hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                     POT4D(1,1,1,1),nr,nphi,nz)
                     r1dtemp(1:3) =-fvalE(1,1:3)
@@ -1036,24 +1036,24 @@ SUBROUTINE write_fidasim_equilibrium
                 yparam = (x0 - phiaxis(j)) * hpi(j)
                 zparam = (zaxis_fida(n) - zaxis(k)) * hzi(k)
                 ! Evaluate the Splines
-                CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+                CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                     hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                     TE4D(1,1,1,1),nr,nphi,nz)
                 rtemp(l,n,m) = max(fval(1),t_min)
-                CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+                CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                     hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                     NE4D(1,1,1,1),nr,nphi,nz)
                 rtemp2(l,n,m) = max(fval(1),zero)
-                CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+                CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                     hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                     TI4D(1,1,1,1),nr,nphi,nz)
                 rtemp3(l,n,m) = max(fval(1),t_min)
-                CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+                CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                     hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                     ZEFF4D(1,1,1,1),nr,nphi,nz)
                 rtemp4(l,n,m) = max(fval(1),one)
                 IF (nomeg>0) THEN
-                  CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+                  CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                      hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                      OMEG4D(1,1,1,1),nr,nphi,nz)
                   rtemp5(l,n,m) = fval(1)*raxis_fida(l)  

@@ -72,19 +72,19 @@
          yparam = (phi_temp - phiaxis(j)) * hpi(j)
          zparam = (z_temp - zaxis(k)) * hzi(k)
          ! Evaluate the Splines
-         CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+         CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                          hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                          BR4D(1,1,1,1),nr,nphi,nz)
          br_temp = fval(1,1)
-         CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+         CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                          hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                          BPHI4D(1,1,1,1),nr,nphi,nz)
          bphi_temp = fval(1,1)
-         CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+         CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                          hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                          BZ4D(1,1,1,1),nr,nphi,nz)
          bz_temp = fval(1,1)
-         CALL R8HERM3FCN(ictE,1,1,fvalE,i,j,k,xparam,yparam,zparam,&
+         CALL grid_eval(ictE,1,1,fvalE,i,j,k,xparam,yparam,zparam,&
                          hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                          POT4D(1,1,1,1),nr,nphi,nz)
          Efield(1:3) =-fvalE(1,1:3)

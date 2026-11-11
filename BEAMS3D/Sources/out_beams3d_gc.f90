@@ -89,10 +89,10 @@ SUBROUTINE out_beams3d_gc(t, q)
        xparam = (q(1) - raxis(i)) * hri(i)
        yparam = (x0 - phiaxis(j)) * hpi(j)
        zparam = (q(3) - zaxis(k)) * hzi(k)
-       CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+       CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                        hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                        XRHO4D(1,1,1,1),nr,nphi,nz)
-       CALL R8HERM3FCN(ict,1,1,fval2,i,j,k,xparam,yparam,zparam,&
+       CALL grid_eval(ict,1,1,fval2,i,j,k,xparam,yparam,zparam,&
                        hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                        YRHO4D(1,1,1,1),nr,nphi,nz)
        z0 = ATAN2(fval2(1),fval(1))
@@ -104,7 +104,7 @@ SUBROUTINE out_beams3d_gc(t, q)
        rho_help = SQRT(y0)
        S_lines(mytdex, myline) = y0 
        U_lines(mytdex, myline) = z0
-       CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+       CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                        hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                        MODB4D(1,1,1,1),nr,nphi,nz)
        B_lines(mytdex, myline) = fval(1)

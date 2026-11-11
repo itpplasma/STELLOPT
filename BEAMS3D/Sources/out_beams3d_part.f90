@@ -92,11 +92,11 @@ SUBROUTINE out_beams3d_part(t, q)
        xparam = (q(1) - raxis(i)) * hri(i)
        yparam = (x0 - phiaxis(j)) * hpi(j)
        zparam = (q(3) - zaxis(k)) * hzi(k)
-       CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+       CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                        hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                        XRHO4D(1,1,1,1),nr,nphi,nz)
        
-       CALL R8HERM3FCN(ict,1,1,fval2,i,j,k,xparam,yparam,zparam,&
+       CALL grid_eval(ict,1,1,fval2,i,j,k,xparam,yparam,zparam,&
                        hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                        YRHO4D(1,1,1,1),nr,nphi,nz)
        y0 = fval(1)*fval(1)+fval2(1)*fval2(1) ! s = rho*rho
@@ -105,15 +105,15 @@ SUBROUTINE out_beams3d_part(t, q)
        S_lines(mytdex, myline) = y0 
        U_lines(mytdex, myline) = z0
        ! Now We get Br, Bphi, Bz to calc B (and vll)
-       CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+       CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                        hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                        BR4D(1,1,1,1),nr,nphi,nz)
        br_temp = fval(1)
-       CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+       CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                        hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                        BPHI4D(1,1,1,1),nr,nphi,nz)
        bphi_temp = fval(1)
-       CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+       CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                        hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                        BZ4D(1,1,1,1),nr,nphi,nz)
        bz_temp = fval(1)

@@ -25,6 +25,7 @@ BENCHMARKS/BEAMS3D_TEST/*
 !BENCHMARKS/BEAMS3D_TEST/test_profile_limits.f90
 !BENCHMARKS/BEAMS3D_TEST/test_wall_interior.f90
 !BENCHMARKS/BEAMS3D_TEST/test_collision_noise.f90
+!BENCHMARKS/BEAMS3D_TEST/test_part2gc.f90
 !BENCHMARKS/BEAMS3D_TEST/check_event_modes.py
 !BENCHMARKS/BEAMS3D_TEST/check_random_seed.py
 !BENCHMARKS/BEAMS3D_TEST/check_period.py

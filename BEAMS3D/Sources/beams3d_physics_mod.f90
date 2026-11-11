@@ -1288,9 +1288,12 @@ MODULE beams3d_physics_mod
          nb(8) = (Bx(11) - gradB(3)*bhat(2))/bn
          nb(9) = (Bx(12) - gradB(3)*bhat(3))/bn
          bkap = DOT_PRODUCT(bhat, gradB)
-         kappa(1) = (bhat(1)*Bx(2) + bhat(2)*Bx(6) + bhat(3)*Bx(10) - bkap*bhat(1))/bn
-         kappa(2) = (bhat(1)*Bx(3) + bhat(2)*Bx(7) + bhat(3)*Bx(11) - bkap*bhat(2))/bn
-         kappa(3) = (bhat(1)*Bx(4) + bhat(2)*Bx(8) + bhat(3)*Bx(12) - bkap*bhat(3))/bn
+         ! kappa = (bhat.grad) bhat, with (bhat.grad) B_j = bhat_i dB_j/dx_i. The
+         ! transposed sum bhat_i dB_i/dx_j is grad|B| and gives grad_perp ln|B|,
+         ! which is the curvature only where curl B is parallel to B.
+         kappa(1) = (bhat(1)*Bx(2)  + bhat(2)*Bx(3)  + bhat(3)*Bx(4)  - bkap*bhat(1))/bn
+         kappa(2) = (bhat(1)*Bx(6)  + bhat(2)*Bx(7)  + bhat(3)*Bx(8)  - bkap*bhat(2))/bn
+         kappa(3) = (bhat(1)*Bx(10) + bhat(2)*Bx(11) + bhat(3)*Bx(12) - bkap*bhat(3))/bn
          xyz  = (/ r*c, r*sn, q(3) /)
          pxyz = mymass*(/ q(4)*c - q(5)*sn, q(4)*sn + q(5)*c, q(6) /)
          ppar0 = DOT_PRODUCT(pxyz, bhat)

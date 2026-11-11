@@ -67,7 +67,7 @@
       ! Now the strcuture of the files is
       IF (myworkid == master) THEN
          ! Read the data
-         CALL open_hdf5(TRIM(ascot_endstate_file),fid,ier,LCREATE=.false.)
+         CALL open_hdf5(TRIM(ascot_endstate_file),fid,ier,LCREATE=.false.,LREADONLY=.true.)
          IF (ier /= 0) CALL handle_err(HDF5_OPEN_ERR,TRIM(restart_string),ier)
          ! First get the marker ID for the run
          !CALL read_group_attscalar_hdf5(fid,'/results/'//TRIM(a5_run_name),'qid_marker',ier,STRVAR=marker_id)

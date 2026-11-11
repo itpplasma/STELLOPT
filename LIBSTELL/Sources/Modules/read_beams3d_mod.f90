@@ -85,7 +85,7 @@ CONTAINS
       ! Read HDF5 File
 #if defined(LHDF5)
       IF (mylocalid == master) THEN
-         CALL open_hdf5(TRIM(filename),fid,istat)
+         CALL open_hdf5(TRIM(filename),fid,istat,LREADONLY=.true.)
          CALL read_scalar_hdf5(fid,'nr',istat,INTVAR=nr)
          CALL read_scalar_hdf5(fid,'nphi',istat,INTVAR=nphi)
          CALL read_scalar_hdf5(fid,'nz',istat,INTVAR=nz)

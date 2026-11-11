@@ -40,7 +40,7 @@ SUBROUTINE beams3d_read(file_ext)
 #if defined(LHDF5)
       IF (myworkid == master) THEN
          IF (lverb) WRITE(6,'(A)')  '   FILE: '//'beams3d_'//TRIM(file_ext)//'.h5'
-         CALL open_hdf5('beams3d_'//TRIM(file_ext)//'.h5',fid,ier,LCREATE=.false.)
+         CALL open_hdf5('beams3d_'//TRIM(file_ext)//'.h5',fid,ier,LCREATE=.false.,LREADONLY=.true.)
          IF (ier /= 0) CALL handle_err(HDF5_OPEN_ERR,'beams3d_'//TRIM(file_ext)//'.h5',ier)
          ! Runtime
          CALL read_scalar_hdf5(fid,'VERSION',ier,DBLVAR=ver_temp)

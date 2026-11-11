@@ -54,7 +54,7 @@
       CONTAINS
       
       !-----------------------------------------------------------------
-      SUBROUTINE open_hdf5(filename,file_id,ier, lcreate,comm,info)
+      SUBROUTINE open_hdf5(filename,file_id,ier, lcreate,comm,info,lreadonly)
       IMPLICIT NONE
       CHARACTER(LEN=*), INTENT(in) :: filename
       INTEGER(HID_T), INTENT(out)  :: file_id
@@ -62,7 +62,11 @@
       LOGICAL, OPTIONAL, INTENT(in) :: lcreate
       INTEGER, OPTIONAL, INTENT(in) :: comm
       INTEGER, OPTIONAL, INTENT(in) :: info
-      INTEGER             ::  strlen, dex
+      ! Open an existing file for reading only. A read-write open marks the
+      ! file as being written, and a second process that opens it meanwhile
+      ! fails, so jobs that start together cannot share an input file.
+      LOGICAL, OPTIONAL, INTENT(in) :: lreadonly
+      INTEGER             ::  strlen, dex, access_flag
       CHARACTER(LEN=1024) ::  file_temp
       file_id   = -1
       file_temp = TRIM(filename)
@@ -71,6 +75,10 @@
       IF (dex /= strlen-2) file_temp = TRIM(file_temp) // '.h5'
       CALL h5open_f(ier)
       IF (ier /=0) RETURN
+      access_flag = H5F_ACC_RDWR_F
+      IF (PRESENT(lreadonly)) THEN
+         IF (lreadonly) access_flag = H5F_ACC_RDONLY_F
+      END IF
 #ifdef HDF5_PAR
       IF (PRESENT(comm)) THEN
          CALL h5pcreate_f(H5P_FILE_ACCESS_F, plistid, ier)
@@ -86,10 +94,10 @@
          IF (lcreate) THEN
             CALL h5fcreate_f(TRIM(file_temp),H5F_ACC_TRUNC_F, file_id,ier, access_prp = plistid)
          ELSE
-            CALL h5fopen_f(file_temp, H5F_ACC_RDWR_F, file_id, ier, access_prp = plistid)
+            CALL h5fopen_f(file_temp, access_flag, file_id, ier, access_prp = plistid)
          END IF
       ELSE
-         CALL h5fopen_f(file_temp, H5F_ACC_RDWR_F, file_id, ier, access_prp = plistid)
+         CALL h5fopen_f(file_temp, access_flag, file_id, ier, access_prp = plistid)
       END IF
 #ifdef HDF5_PAR
       IF (PRESENT(comm)) CALL h5pclose_f(plistid,ier)

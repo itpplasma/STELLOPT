@@ -25,7 +25,7 @@ SUBROUTINE beams3d_follow_gc
                             nr_fida, nphi_fida, nz_fida, nenergy_fida, npitch_fida,raxis
     USE mpi_params ! MPI
     USE beams3d_write_par
-    USE beams3d_physics_mod, ONLY: beams3d_calc_dt, coll_t0
+    USE beams3d_physics_mod, ONLY: beams3d_calc_dt, coll_t0, beams3d_MODB
     USE collision_operators, ONLY: SET_COULOMB_FACTOR
     USE safe_open_mod, ONLY: safe_open
     USE mpi_inc
@@ -56,7 +56,7 @@ SUBROUTINE beams3d_follow_gc
                         dtmin, dtmax
     DOUBLE PRECISION :: atol(4)
     DOUBLE PRECISION :: rkh_work(4, 2)
-    DOUBLE PRECISION :: h_dp, vscale_dp
+    DOUBLE PRECISION :: h_dp, vscale_dp, b_dp, e_dp
     CHARACTER*1 :: relab
     DOUBLE PRECISION, PARAMETER :: e_charge      = 1.602176634D-19 !e_c
 
@@ -297,6 +297,11 @@ SUBROUTINE beams3d_follow_gc
                     DO
                         IF (TRIM(int_type) == 'DOPRI5') THEN
                            CALL dopri5_advance(t_nag, tf_nag, q, h_dp, follow_tol, vscale_dp)
+                           ! Energy is invariant over the orbit step; project vll back
+                           ! onto it, which removes the integrator's secular drift.
+                           CALL beams3d_MODB(q(1:3), b_dp)
+                           e_dp = previous_energy - moment*b_dp
+                           IF (e_dp > 1.0D-6*previous_energy) q(4) = SIGN(SQRT(2*e_dp/mymass), q(4))
                            t_last(l) = tf_nag
                            CALL out_beams3d_gc(tf_nag,q)
                            IF ((ABS(tf_nag) > ABS(my_end)+0.5D0*ABS(dt)) &

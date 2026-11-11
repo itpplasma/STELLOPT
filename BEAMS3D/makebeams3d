@@ -30,6 +30,12 @@ test_collision_noise: $(LIB) $(filter-out beams3d_main.o,$(ObjectFiles))
 	$(LINK) $@ test_collision_noise.o $(filter-out beams3d_main.o,$(ObjectFiles)) $(LIB_LINK)
 	./test_collision_noise
 
+.PHONY: test_part2gc
+test_part2gc: $(LIB) $(filter-out beams3d_main.o,$(ObjectFiles))
+	$(COMPILE_FREE) $(FLAGS) $(MOD_PATH). -c ../../BENCHMARKS/BEAMS3D_TEST/test_part2gc.f90 -o test_part2gc.o
+	$(LINK) $@ test_part2gc.o $(filter-out beams3d_main.o,$(ObjectFiles)) $(LIB_LINK)
+	./test_part2gc
+
 #Compile object files defined in OBJLIST.
 .f.o :
 	@if grep -q '^!DEC\$$' $<; \

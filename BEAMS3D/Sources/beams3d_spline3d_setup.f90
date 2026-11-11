@@ -139,7 +139,7 @@
 
       ! The flux label of the collision step: a tricubic spline with natural
       ! ends in R and Z and periodic in phi, the interpolant ASCOT5 (B_STS)
-      ! and SIMPLE build from the same grid. Unlike the Hermite fits it is C2.
+      ! builds from the same grid. Unlike the Hermite fits it is C2.
       SUBROUTINE build_cubic(fin, fout, k)
          DOUBLE PRECISION, INTENT(in)    :: fin(nr,nphi,nz)
          DOUBLE PRECISION, INTENT(inout) :: fout(8,nr,nphi,nz)

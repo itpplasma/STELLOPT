@@ -87,7 +87,7 @@
          ! Read HDF5 File
 #if defined(LHDF5)
          IF (mylocalid == master) THEN
-            CALL open_hdf5(TRIM(filename),fid,istat)
+            CALL open_hdf5(TRIM(filename),fid,istat,LREADONLY=.true.)
             CALL read_scalar_hdf5(fid,'nr',istat,INTVAR=nr)
             CALL read_scalar_hdf5(fid,'nphi',istat,INTVAR=nphi)
             CALL read_scalar_hdf5(fid,'nz',istat,INTVAR=nz)
@@ -198,7 +198,7 @@
          ! Read Arrays and close file
 #if defined(LHDF5)
          IF (mylocalid == master) THEN
-            CALL open_hdf5(TRIM(filename),fid,istat)
+            CALL open_hdf5(TRIM(filename),fid,istat,LREADONLY=.true.)
             CALL read_var_hdf5(fid, 'R_lines',   nlines*nsteps, istat, DBLVAR=R_1D)
             CALL read_var_hdf5(fid, 'PHI_lines', nlines*nsteps, istat, DBLVAR=PHI_1D)
             CALL read_var_hdf5(fid, 'Z_lines',   nlines*nsteps, istat, DBLVAR=Z_1D)

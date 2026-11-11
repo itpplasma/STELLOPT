@@ -36,6 +36,12 @@ test_part2gc: $(LIB) $(filter-out beams3d_main.o,$(ObjectFiles))
 	$(LINK) $@ test_part2gc.o $(filter-out beams3d_main.o,$(ObjectFiles)) $(LIB_LINK)
 	./test_part2gc
 
+.PHONY: test_readonly_open
+test_readonly_open: $(LIB) $(filter-out beams3d_main.o,$(ObjectFiles))
+	$(COMPILE_FREE) $(FLAGS) $(MOD_PATH). -c ../../BENCHMARKS/BEAMS3D_TEST/test_readonly_open.f90 -o test_readonly_open.o
+	$(LINK) $@ test_readonly_open.o $(filter-out beams3d_main.o,$(ObjectFiles)) $(LIB_LINK)
+	./test_readonly_open
+
 #Compile object files defined in OBJLIST.
 .f.o :
 	@if grep -q '^!DEC\$$' $<; \

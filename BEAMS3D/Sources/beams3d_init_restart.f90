@@ -73,7 +73,7 @@
          lfusion_old = .FALSE.
          npoinc_save = npoinc
          ! Read the data
-         CALL open_hdf5(TRIM(restart_string),fid,ier,LCREATE=.false.)
+         CALL open_hdf5(TRIM(restart_string),fid,ier,LCREATE=.false.,LREADONLY=.true.)
          IF (ier /= 0) CALL handle_err(HDF5_OPEN_ERR,TRIM(restart_string),ier)
          CALL read_scalar_hdf5(fid,'nparticles',ier,INTVAR=nparticles)
          IF (ier /= 0) CALL handle_err(HDF5_READ_ERR,'nparticles',ier)

@@ -75,7 +75,7 @@ MODULE beams3d_runtime
                               ZATOM_BEAMS, P_BEAMS, nparticles_start, &
                               npoinc, follow_tol, int_type, ne_scale, &
                               te_scale, ti_scale, zeff_scale, &
-                              fusion_scale, lendt_m, te_col_min, &
+                              fusion_scale, lendt_m, fixed_dt, te_col_min, &
                               duplicate_factor, ldebug, lbeam, &
                               MAXBEAMS, lbeam, MAXBEAMS, nbeams, &
                               pi2, NION, &

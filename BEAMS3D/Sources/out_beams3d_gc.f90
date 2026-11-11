@@ -52,7 +52,7 @@ SUBROUTINE out_beams3d_gc(t, q)
     INTEGER             :: ier, d1, d2, d3, d4, d5, d1f
     DOUBLE PRECISION         :: x0,y0,z0,x1,y1,z1,xw,yw,zw, vperp
     DOUBLE PRECISION         :: callback_time, hit_fraction, event_br, event_bphi, event_bz
-    DOUBLE PRECISION    :: q2(4)
+    DOUBLE PRECISION    :: q2(4), vll_step, vll_hit
     ! For splines
     INTEGER :: i,j,k,l
     REAL*8 :: xparam, yparam, zparam !, hx, hy, hz, hxi, hyi, hzi
@@ -63,6 +63,7 @@ SUBROUTINE out_beams3d_gc(t, q)
     !     Begin Function
     !-----------------------------------------------------------------------
     callback_time = t
+    vll_step = q(4)
     lhit = .false.
     time_lines(mytdex, myline)   = callback_time
     R_lines(mytdex, myline)      = q(1)
@@ -134,7 +135,17 @@ SUBROUTINE out_beams3d_gc(t, q)
             CALL MPI_WIN_UNLOCK(0,win_dist5d_fida,ier)
 #endif
           END IF
-          IF (lcollision) CALL beams3d_physics_gc(t,q)
+          ! The initial point (mytdex = 0) is recorded, not stepped; a
+          ! collision step there would book a kick that never happens.
+          ! vll at the end of the orbit step, before its collision kick
+          vll_step = q(4)
+          IF (lcollision .and. mytdex > 0) THEN
+             CALL beams3d_physics_gc(t,q)
+             ! Record the state after the collision step, as ASCOT5 and
+             ! SIMPLE do, so that a recorded point carries all kicks up to t.
+             vll_lines(mytdex, myline)    = q(4)
+             moment_lines(mytdex, myline) = moment
+          END IF
           IF (ltherm) THEN
              ndot_prof(mybeam,d1)   =   ndot_prof(mybeam,d1) + weight(myline)
              end_state(myline) = 1
@@ -172,10 +183,11 @@ SUBROUTINE out_beams3d_gc(t, q)
              wall_hit_r(myline) = q2(1)
              wall_hit_phi(myline) = q2(2)
              wall_hit_z(myline) = q2(3)
-             wall_hit_vll(myline) = previous_vll + hit_fraction* &
-                                      (vll_lines(mytdex,myline)-previous_vll)
-             wall_hit_moment(myline) = previous_moment + hit_fraction* &
-                                         (moment_lines(mytdex,myline)-previous_moment)
+             ! The hit lies inside the orbit step, before the step's collision
+             ! kick: the moment and energy are those of the step, and vll
+             ! follows from them and |B| at the hit point.
+             wall_hit_vll(myline) = previous_vll + hit_fraction*(vll_step-previous_vll)
+             wall_hit_moment(myline) = previous_moment
              CALL beams3d_event_diagnostics(q2(1),q2(2),q2(3), &
                     wall_hit_s(myline),wall_hit_u(myline),wall_hit_b(myline), &
                     event_br,event_bphi,event_bz,lfield)
@@ -183,6 +195,9 @@ SUBROUTINE out_beams3d_gc(t, q)
              IF (lneut) THEN
                 wall_hit_energy(myline) = 0.5*mymass*wall_hit_vll(myline)**2
              ELSE IF (lfield) THEN
+                vll_hit = previous_energy - previous_moment*wall_hit_b(myline)
+                IF (vll_hit > 0) wall_hit_vll(myline) = &
+                   SIGN(SQRT(2*vll_hit/mymass), wall_hit_vll(myline))
                 wall_hit_energy(myline) = 0.5*mymass*wall_hit_vll(myline)**2 + &
                                            wall_hit_moment(myline)*wall_hit_b(myline)
              END IF

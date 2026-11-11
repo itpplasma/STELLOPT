@@ -27,6 +27,7 @@
                  nsub_fullorbit, random_seed_in, collision_noise, &
                  mumaterial_niter, mumaterial_lamthresh, mumaterial_depth, mumaterial_leaf
       INTEGER(8) :: collision_noise_seed
+      CHARACTER(LEN=8) :: spline_type
       INTEGER, DIMENSION(MAXBEAMS) :: Dex_beams
       REAL(rprec) :: follow_tol, pi2, ne_scale, te_scale, ti_scale, &
                      zeff_scale, fusion_scale, lendt_m, fixed_dt, te_col_min, rho_max_dist, &

@@ -8,7 +8,7 @@
 !-----------------------------------------------------------------------
 !     Libraries
 !-----------------------------------------------------------------------
-      USE beams3d_globals, ONLY: nr, nphi, nz
+      USE beams3d_globals, ONLY: nr, nphi, nz, spline_type
       USE beams3d_runtime, ONLY: handle_err, lvac, EZSPLINE_ERR, &
          MPI_BARRIER_ERR
       USE mpi_params, ONLY: master, myid_sharmem, MPI_COMM_SHARMEM
@@ -40,6 +40,7 @@
 !-----------------------------------------------------------------------
       ier = 0 ; bcs1=(/ 0, 0/); bcs2=(/-1,-1/); bcs3=(/ 0, 0/)
       nshar = 1
+      lcubic_grid = (spline_type(1:1) == 'C' .or. spline_type(1:1) == 'c')
 #if defined(MPI_OPT)
       CALL MPI_COMM_SIZE(MPI_COMM_SHARMEM, nshar, ier)
 #endif
@@ -118,6 +119,10 @@
          INTEGER, INTENT(in)             :: k
          TYPE(EZspline3_r8) :: F_spl
          INTEGER :: ierr
+         IF (lcubic_grid) THEN
+            CALL build_cubic(fin, fout, k)
+            RETURN
+         END IF
          IF (MOD(k,nshar) /= myid_sharmem) RETURN
          ierr = 0
          CALL EZspline_init(F_spl,nr,nphi,nz,bcs1,bcs2,bcs3,ierr)

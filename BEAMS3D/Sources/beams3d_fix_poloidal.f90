@@ -54,11 +54,11 @@
             zparam = (z1 - zaxis(k)) * hzi(k)
             ! Even taking X4D, Y4D to XRHO4D, YRHO4D it's still 
             ! true that U = atan2(yrho / xrho)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             XRHO4D(1,1,1,1),nr,nphi,nz)
             xt = fval(1)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             YRHO4D(1,1,1,1),nr,nphi,nz)
             yt = fval(1)

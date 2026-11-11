@@ -99,23 +99,23 @@ MODULE beams3d_physics_mod
          xparam = (r-raxis(i))*hri(i)
          yparam = (p-phiaxis(j))*hpi(j)
          zparam = (z-zaxis(k))*hzi(k)
-         CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam, &
+         CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam, &
                          hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k), &
                          XRHO4D(1,1,1,1),nr,nphi,nz)
          xrho = fval(1)
-         CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam, &
+         CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam, &
                          hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k), &
                          YRHO4D(1,1,1,1),nr,nphi,nz)
          yrho = fval(1); s = xrho*xrho+yrho*yrho; u = ATAN2(yrho,xrho)
-         CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam, &
+         CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam, &
                          hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k), &
                          BR4D(1,1,1,1),nr,nphi,nz)
          br = fval(1)
-         CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam, &
+         CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam, &
                          hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k), &
                          BPHI4D(1,1,1,1),nr,nphi,nz)
          bphi = fval(1)
-         CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam, &
+         CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam, &
                          hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k), &
                          BZ4D(1,1,1,1),nr,nphi,nz)
          bz = fval(1); b = SQRT(br*br+bphi*bphi+bz*bz)
@@ -434,12 +434,12 @@ MODULE beams3d_physics_mod
             yparam = (phi_temp - phiaxis(j)) * hpi(j)
             zparam = (z_temp - zaxis(k)) * hzi(k)
             ! Evaluate the Splines
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             MODB4D(1,1,1,1),nr,nphi,nz)
             modb = fval(1)
             binv = one/modb
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             BPHI4D(1,1,1,1),nr,nphi,nz)
             bphi_temp = fval(1)            
@@ -675,18 +675,18 @@ MODULE beams3d_physics_mod
                             S4D(1,1,1,1),nr,nphi,nz)
             s_temp = max(fval(1),zero)
             rho_temp = SQRT(s_temp)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             BR4D(1,1,1,1),nr,nphi,nz)
             br_temp = fval(1)
             CALL profiles_at_s(s_temp,te_temp,ne_temp,ti_temp, &
                                zeff_temp,omeg_temp,ni_temp)
             IF (lion_mix) CALL set_local_ion_mix(ni_temp)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             BPHI4D(1,1,1,1),nr,nphi,nz)
             bphi_temp = fval(1)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             BZ4D(1,1,1,1),nr,nphi,nz)
             bz_temp = fval(1)
@@ -929,7 +929,7 @@ MODULE beams3d_physics_mod
                   yparam = (phi_temp - phiaxis(j)) * hpi(j)
                   zparam = (q(3) - zaxis(k)) * hzi(k)
                   rho_temp =1.5
-                  CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+                  CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                                   hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                                   RHO4D(1,1,1,1),nr,nphi,nz)
                   rho_temp = fval(1)
@@ -991,7 +991,7 @@ MODULE beams3d_physics_mod
                   xparam = (q(1) - raxis(i)) * hri(i)
                   yparam = (phi_temp - phiaxis(j)) * hpi(j)
                   zparam = (q(3) - zaxis(k)) * hzi(k)
-                  CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+                  CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                                   hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                                   RHO4D(1,1,1,1),nr,nphi,nz)
                   rho_temp = fval(1)
@@ -1029,20 +1029,20 @@ MODULE beams3d_physics_mod
             xparam = (rlocal(l) - raxis(i)) * hri(i)
             yparam = (plocal(l) - phiaxis(j)) * hpi(j)
             zparam = (zlocal(l) - zaxis(k)) * hzi(k)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             TI4D(1,1,1,1),nr,nphi,nz)
             tilocal(l) = MAX(fval(1),zero)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             TE4D(1,1,1,1),nr,nphi,nz)
             telocal(l) = MAX(fval(1),zero)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             NE4D(1,1,1,1),nr,nphi,nz)
             nelocal(l) = MAX(fval(1),zero)
             DO m = 1, NION
-               CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+               CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             NI5D(1,1,1,1,m),nr,nphi,nz)
                nilocal(m,l) = MAX(fval(1),one) !Set to one to prevent NaN Zeff later on
@@ -1124,7 +1124,7 @@ MODULE beams3d_physics_mod
             xparam = (rlocal(l) - raxis(i)) * hri(i)
             yparam = (plocal(l) - phiaxis(j)) * hpi(j)
             zparam = (zlocal(l) - zaxis(k)) * hzi(k)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             RHO4D(1,1,1,1),nr,nphi,nz)
             rho_temp = fval(1)
@@ -1246,13 +1246,13 @@ MODULE beams3d_physics_mod
          xparam = (r - raxis(i)) * hri(i)
          yparam = (phi_temp - phiaxis(j)) * hpi(j)
          zparam = (q(3) - zaxis(k)) * hzi(k)
-         CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+         CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                          hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),BR4D(1,1,1,1),nr,nphi,nz)
          B_dB(1:4) = fval(1,1:4)
-         CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+         CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                          hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),BPHI4D(1,1,1,1),nr,nphi,nz)
          B_dB(5:8) = fval(1,1:4)
-         CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+         CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                          hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),BZ4D(1,1,1,1),nr,nphi,nz)
          B_dB(9:12) = fval(1,1:4)
          ! math_jac_rpz2xyz: field and Cartesian Jacobian at azimuth q(2)
@@ -1420,19 +1420,19 @@ MODULE beams3d_physics_mod
          xparam = (r_temp - raxis(i)) * hri(i)
          yparam = (phi_temp - phiaxis(j)) * hpi(j)
          zparam = (z_temp - zaxis(k)) * hzi(k)
-         CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+         CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                          hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                          BR4D(1,1,1,1),nr,nphi,nz)
          br_temp = fval(1)
-         CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+         CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                          hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                          BPHI4D(1,1,1,1),nr,nphi,nz)
          bp_temp = fval(1)
-         CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+         CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                          hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                          BZ4D(1,1,1,1),nr,nphi,nz)
          bz_temp = fval(1)
-         CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+         CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                          hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                          MODB4D(1,1,1,1),nr,nphi,nz)
          modb_temp = fval(1)
@@ -1564,16 +1564,16 @@ MODULE beams3d_physics_mod
             yparam = (phi_temp - phiaxis(j)) * hpi(j)
             zparam = (z_temp - zaxis(k)) * hzi(k)
             ! Evaluate the Splines
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             TI4D(1,1,1,1),nr,nphi,nz)
             ti_temp = max(fval(1),zero)
             ! Assume 1 and 2 are D and T
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             NI5D(1,1,1,1,dexionT),nr,nphi,nz)
             nd_temp = max(fval(1),zero)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             NI5D(1,1,1,1,dexionD),nr,nphi,nz)
             nt_temp = max(fval(1),zero)
@@ -1649,12 +1649,12 @@ MODULE beams3d_physics_mod
             yparam = (phi_temp - phiaxis(j)) * hpi(j)
             zparam = (z_temp - zaxis(k)) * hzi(k)
             ! Evaluate the Splines
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             TI4D(1,1,1,1),nr,nphi,nz)
             ti_temp = max(fval(1),zero)
             ! Assume 1 and 2 are D and T
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             NI5D(1,1,1,1,dexionD),nr,nphi,nz)
             nd_temp = max(fval(1),zero)
@@ -1731,11 +1731,11 @@ MODULE beams3d_physics_mod
             yparam = (phi_temp - phiaxis(j)) * hpi(j)
             zparam = (z_temp - zaxis(k)) * hzi(k)
             ! Evaluate the Splines
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             TI4D(1,1,1,1),nr,nphi,nz)
             ti_temp = max(fval(1),zero)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             NI5D(1,1,1,1,dexionD),nr,nphi,nz)
             nd_temp = max(fval(1),zero)
@@ -1811,15 +1811,15 @@ MODULE beams3d_physics_mod
             yparam = (phi_temp - phiaxis(j)) * hpi(j)
             zparam = (z_temp - zaxis(k)) * hzi(k)
             ! Evaluate the Splines
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             TI4D(1,1,1,1),nr,nphi,nz)
             ti_temp = max(fval(1),zero)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             NI5D(1,1,1,1,dexionD),nr,nphi,nz)
             nd_temp = max(fval(1),zero)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             NI5D(1,1,1,1,dexionHe3),nr,nphi,nz)
             nHe3_temp = max(fval(1),zero)
@@ -1888,7 +1888,7 @@ MODULE beams3d_physics_mod
             yparam = (phi_temp - phiaxis(j)) * hpi(j)
             zparam = (z_temp - zaxis(k)) * hzi(k)
             ! Evaluate the Splines
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             MODB4D(1,1,1,1),nr,nphi,nz)
             B = max(fval(1),zero)
@@ -1956,7 +1956,7 @@ MODULE beams3d_physics_mod
             yparam = (phi_temp - phiaxis(j)) * hpi(j)
             zparam = (z_temp - zaxis(k)) * hzi(k)
             ! Evaluate the Splines
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             OMEG4D(1,1,1,1),nr,nphi,nz)
             vtor = fval(1)*r_temp
@@ -2021,15 +2021,15 @@ MODULE beams3d_physics_mod
             yparam = (phi_temp - phiaxis(j)) * hpi(j)
             zparam = (z - zaxis(k)) * hzi(k)
             ! Evaluate the Splines
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             BR4D(1,1,1,1),nr,nphi,nz)
             Br = fval(1)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             BPHI4D(1,1,1,1),nr,nphi,nz)
             Bphi = fval(1)
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             BZ4D(1,1,1,1),nr,nphi,nz)
             Bz = fval(1)
@@ -2140,7 +2140,7 @@ MODULE beams3d_physics_mod
             yparam = (phi_temp - phiaxis(j)) * hpi(j)
             zparam = (z_temp - zaxis(k)) * hzi(k)
             ! Evaluate the Splines
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             RHO4D(1,1,1,1),nr,nphi,nz)
             RHO = max(fval(1),zero)
@@ -2210,12 +2210,12 @@ MODULE beams3d_physics_mod
             yparam = (phi_temp - phiaxis(j)) * hpi(j)
             zparam = (z_temp - zaxis(k)) * hzi(k)
             ! Evaluate the Splines
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             RHO4D(1,1,1,1),nr,nphi,nz)
             RHO = max(fval(1),zero)
             S = RHO*RHO
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             U4D(1,1,1,1),nr,nphi,nz)
             U = fval(1)
@@ -2304,10 +2304,10 @@ MODULE beams3d_physics_mod
             xparam = (r_out - raxis(i)) * hri(i)
             zparam = (z_out - zaxis(k)) * hzi(k)
             ! Evaluate the Splines
-            CALL R8HERM3FCN(ict,1,1,fvalxrho,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fvalxrho,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             XRHO4D(1,1,1,1),nr,nphi,nz)
-            CALL R8HERM3FCN(ict,1,1,fvalyrho,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fvalyrho,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             YRHO4D(1,1,1,1),nr,nphi,nz)
 
@@ -2407,7 +2407,7 @@ MODULE beams3d_physics_mod
             yparam = (phi_temp - phiaxis(j)) * hpi(j)
             zparam = (z_temp - zaxis(k)) * hzi(k)
             ! Evaluate the Splines
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL grid_eval(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             MODB4D(1,1,1,1),nr,nphi,nz)
             !vperp = SQRT(2*mu*fval(1)/mass)

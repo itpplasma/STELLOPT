@@ -98,6 +98,10 @@
 !                           Euler-Maruyama step in speed and pitch as ASCOT5's
 !                           mccc_gc_euler; 2 the same step without noise.
 !            collision_noise_seed  Seed of collision_noise = 1
+!            spline_type    Interpolation of the 3-D grids: 'HERMITE' (default,
+!                           C1 tricubic Hermite) or 'CUBIC' (C2 tricubic spline
+!                           with natural ends in R and Z and periodic in phi,
+!                           the interpolant of ASCOT5's B_STS)
 !            plasma_mass    Mean plasma mass in [kg]
 !            Zeff           <Z> = sum(n_k*Z_k^2)/sum(n_k*Z_k)
 !            plasma_Zmean   [Z] = sum(n_k*Z_k^2*(plasma_mass/m_k))/sum(n_k*Z_k)
@@ -133,7 +137,7 @@
                                B_kick_min, B_kick_max, freq_kick, E_kick,&
                                vr_start_in, vphi_start_in, vz_start_in, &
                                rho_fullorbit, nsub_fullorbit, duplicate_factor, &
-                               random_seed_in, collision_noise, collision_noise_seed, &
+                               random_seed_in, collision_noise, collision_noise_seed, spline_type, &
                                B_kick_min, B_kick_max, freq_kick, E_kick, &
                                rmin_fida, rmax_fida, zmin_fida, &
                                zmax_fida,phimin_fida, phimax_fida, &
@@ -260,6 +264,7 @@
       duplicate_factor = 1 ! No particle duplication
       random_seed_in = -1 ! Seed from the operating system
       collision_noise = 0
+      spline_type = 'HERMITE'
       collision_noise_seed = 0
 
       ! Distribution Function Defaults
@@ -569,6 +574,7 @@
       WRITE(iunit_out,outint) 'DUPLICATE_FACTOR',duplicate_factor
       WRITE(iunit_out,outint) 'RANDOM_SEED_IN',random_seed_in
       WRITE(iunit_out,outint) 'COLLISION_NOISE',collision_noise
+      WRITE(iunit_out,outstr) 'SPLINE_TYPE',TRIM(spline_type)
       WRITE(iunit_out,outint) 'COLLISION_NOISE_SEED',collision_noise_seed
       WRITE(iunit_out,'(A)') '!---------- Distribution Parameters ------------'
       WRITE(iunit_out,outint) 'NRHO_DIST',ns_prof1
@@ -755,6 +761,7 @@
       CALL MPI_BCAST(duplicate_factor,1,MPI_INTEGER, local_master, comm,istat)
       CALL MPI_BCAST(random_seed_in,1,MPI_INTEGER, local_master, comm,istat)
       CALL MPI_BCAST(collision_noise,1,MPI_INTEGER, local_master, comm,istat)
+      CALL MPI_BCAST(spline_type,8,MPI_CHARACTER, local_master, comm,istat)
       CALL MPI_BCAST(collision_noise_seed,1,MPI_INTEGER8, local_master, comm,istat)
 
       CALL MPI_BCAST(nte,1,MPI_INTEGER, local_master, comm,istat)

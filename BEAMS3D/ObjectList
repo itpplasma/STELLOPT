@@ -1,4 +1,5 @@
 ObjectFiles = \
+grid_eval.o \
 beams3d_init_ascot5_endstate.o \
 beams3d_spline3d_setup.o \
 beams3d_init_user.o \

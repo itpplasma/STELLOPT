@@ -86,6 +86,8 @@
       REAL(rprec), DIMENSION(:,:,:,:,:), POINTER :: NI5D
       REAL*8 ::      eps1, eps2, eps3
       LOGICAL ::     lpot = .TRUE.
+      ! Grids hold C2 tricubic spline instead of Hermite coefficients
+      LOGICAL ::     lcubic_grid = .FALSE.
       REAL*8, parameter :: small = 1.e-10_ezspline_r8
       REAL*8, POINTER :: hr(:), hp(:), hz(:)
       REAL*8, POINTER :: hri(:), hpi(:), hzi(:)

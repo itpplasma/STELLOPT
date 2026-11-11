@@ -134,7 +134,9 @@ SUBROUTINE out_beams3d_gc(t, q)
             CALL MPI_WIN_UNLOCK(0,win_dist5d_fida,ier)
 #endif
           END IF
-          IF (lcollision) THEN
+          ! The initial point (mytdex = 0) is recorded, not stepped; a
+          ! collision step there would book a kick that never happens.
+          IF (lcollision .and. mytdex > 0) THEN
              CALL beams3d_physics_gc(t,q)
              ! Record the state after the collision step, as ASCOT5 and
              ! SIMPLE do, so that a recorded point carries all kicks up to t.

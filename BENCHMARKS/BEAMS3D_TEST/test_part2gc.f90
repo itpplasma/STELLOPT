@@ -32,7 +32,7 @@ PROGRAM test_part2gc
     mymass=1.67262192369D-27; mycharge=1.602176634D-19
     failures=0
     DO i=0,5
-        vr=1.0D6-3.0D5*i; vphi=2.0D6-5.0D5*i; vz=0.4D6+2.0D5*i
+        vr=1.0D6-3.0D5*i; vphi=2.0D6-4.5D5*i; vz=0.4D6+2.0D5*i
         q=[4.6D0+0.3D0*i,0.4D0+1.1D0*i,0.2D0,vr,vphi,vz]
         vperp=HYPOT(vr,vz)
         rho=mymass*vperp/(mycharge*b0)

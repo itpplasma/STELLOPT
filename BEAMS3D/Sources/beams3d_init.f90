@@ -121,6 +121,7 @@
          IF (lverb) WRITE(6,'(A)') '   FILE:     input.' // TRIM(id_string)
          IF (lverb) WRITE(6,'(A)') '   RESTART GRID FILE: ' // TRIM(continue_grid_string)
          CALL read_beams3d_mag(TRIM(continue_grid_string),MPI_COMM_SHARMEM,ier)
+         IF (ier /= 0) CALL handle_err(HDF5_OPEN_ERR,TRIM(continue_grid_string),ier)
          phimin = 0
          CALL get_beams3d_grid(nr,nz,nphi,rmin,rmax,zmin,zmax,phimax)    
       ELSE IF (luser_init) THEN

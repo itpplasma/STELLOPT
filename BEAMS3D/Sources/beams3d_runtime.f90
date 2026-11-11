@@ -384,7 +384,11 @@ CONTAINS
         CALL MPI_ALLGATHER(error_num,1,MPI_INTEGER,error_array,1,MPI_INTEGER,MPI_COMM_BEAMS,ierr_mpi)
         ierr_mpi = 0
         CALL MPI_BARRIER(MPI_COMM_BEAMS,ierr_mpi)
-        IF (ANY(error_array .ne. 0)) CALL MPI_FINALIZE(ierr_mpi)
+        ! Returning here would let every process run on after MPI_FINALIZE.
+        IF (ANY(error_array .ne. 0)) THEN
+            CALL MPI_FINALIZE(ierr_mpi)
+            STOP 1
+        END IF
         DEALLOCATE(error_array)
         RETURN
 #else

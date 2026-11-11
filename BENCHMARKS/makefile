@@ -50,6 +50,7 @@ test_beams3d:
 	$(MAKE) test_beams3d_collision_noise
 	$(MAKE) test_beams3d_part2gc
 	$(MAKE) test_beams3d_readonly_open
+	$(MAKE) test_beams3d_grid_open_error
 	$(MAKE) test_beams3d_wall
 	$(MAKE) test_beams3d_wall_planar
 	$(MAKE) test_beams3d_coulomb_log
@@ -226,6 +227,14 @@ test_beams3d_part2gc:
 
 test_beams3d_readonly_open:
 	$(MAKE) -C ../BEAMS3D/Release -f ../makebeams3d test_readonly_open FLAGS="$(FLAGS_R) $(MOD1_PATH)" TYPE=release LOCTYPE=Release
+
+test_beams3d_grid_open_error:
+	@cd $(BEAMS3D_TEST_DIR); printf 'not an HDF5 file\n' > badgrid.h5; \
+	if $(MPI_RUN) $(MPI_RUN_OPTS_SM) $(MYHOME)/xbeams3d -continue_grid ORBITS badgrid.h5 > badgrid.log 2>&1; then \
+		echo "FAIL: a run on an unreadable grid file ended without an error"; exit 1; fi; \
+	if ! grep -q "ERROR OPENING AN HDF5 FILE" badgrid.log || grep -q "Segmentation" badgrid.log; then \
+		echo "FAIL: an unreadable grid file was not reported before the run stopped"; exit 1; fi; \
+	echo "BEAMS3D unreadable grid file check: PASS"
 
 test_beams3d_birth_phase:
 	@cd $(BEAMS3D_TEST_DIR); cp wout_ORBITS.nc wout_BIRTH_PHASE.nc

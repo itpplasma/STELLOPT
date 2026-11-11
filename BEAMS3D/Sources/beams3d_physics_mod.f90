@@ -29,7 +29,7 @@ MODULE beams3d_physics_mod
                                ns_prof5, my_end, h1_prof, fact_crit_legacy
       USE beams3d_grid, ONLY: grid_cell, delta_t, MODB4D, OMEG4D, nomeg,&
                               phimax, TE4D, NE4D, TI4D, ZEFF4D, &
-                              RHO4D, XRHO4D, YRHO4D, &
+                              RHO4D, XRHO4D, YRHO4D, S4D, &
                               nr, nphi, nz, rmax, rmin, zmax, zmin, &
                               phimin, eps1, eps2, eps3, raxis, phiaxis,&
                               zaxis, U4D,nzeff, dexionT, dexionD, dexionHe3, &
@@ -373,6 +373,7 @@ MODULE beams3d_physics_mod
          !          q            (q(1),q(2),q(3),q(4)) = (R,phi,Z,vll)
          !--------------------------------------------------------------
          IMPLICIT NONE
+         INTEGER, PARAMETER :: ict_cub(10) = (/1,0,0,0,0,0,0,0,0,0/)
          DOUBLE PRECISION, INTENT(inout) :: t
          DOUBLE PRECISION, INTENT(inout) :: q(4)
          !--------------------------------------------------------------
@@ -442,11 +443,12 @@ MODULE beams3d_physics_mod
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             BPHI4D(1,1,1,1),nr,nphi,nz)
             bphi_temp = fval(1)            
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL R8FVTRICUB(ict_cub,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
-                            RHO4D(1,1,1,1),nr,nphi,nz)
-            rho_temp = max(fval(1),zero)
-            CALL profiles_at_s(rho_temp*rho_temp,te_temp,ne_temp,ti_temp, &
+                            S4D(1,1,1,1),nr,nphi,nz)
+            s_temp = max(fval(1),zero)
+            rho_temp = SQRT(s_temp)
+            CALL profiles_at_s(s_temp,te_temp,ne_temp,ti_temp, &
                                zeff_temp,omeg_temp,ni_temp)
             IF (lion_mix) CALL set_local_ion_mix(ni_temp)
 
@@ -611,6 +613,7 @@ MODULE beams3d_physics_mod
          !          q            (q(1),q(2),q(3),q(4)) = (R,phi,Z,vll)
          !--------------------------------------------------------------
          IMPLICIT NONE
+         INTEGER, PARAMETER :: ict_cub(10) = (/1,0,0,0,0,0,0,0,0,0/)
          DOUBLE PRECISION, INTENT(inout) :: t
          DOUBLE PRECISION, INTENT(inout) :: q(6)
          !--------------------------------------------------------------
@@ -667,15 +670,16 @@ MODULE beams3d_physics_mod
             yparam = (phi_temp - phiaxis(j)) * hpi(j)
             zparam = (z_temp - zaxis(k)) * hzi(k)
             ! Evaluate the Splines
-            CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
+            CALL R8FVTRICUB(ict_cub,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
-                            RHO4D(1,1,1,1),nr,nphi,nz)
-            rho_temp = max(fval(1),zero)
+                            S4D(1,1,1,1),nr,nphi,nz)
+            s_temp = max(fval(1),zero)
+            rho_temp = SQRT(s_temp)
             CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&
                             hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                             BR4D(1,1,1,1),nr,nphi,nz)
             br_temp = fval(1)
-            CALL profiles_at_s(rho_temp*rho_temp,te_temp,ne_temp,ti_temp, &
+            CALL profiles_at_s(s_temp,te_temp,ne_temp,ti_temp, &
                                zeff_temp,omeg_temp,ni_temp)
             IF (lion_mix) CALL set_local_ion_mix(ni_temp)
             CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&

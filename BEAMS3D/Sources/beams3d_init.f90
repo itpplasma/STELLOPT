@@ -522,7 +522,7 @@
          XRHO_ARR = RHO_ARR * COS(U_ARR)
          YRHO_ARR = RHO_ARR * SIN(U_ARR)
       END IF
-      CALL mpidealloc(S_ARR,win_S_ARR)
+      ! S_ARR is freed after its spline is built (beams3d_spline3d_setup)
 
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

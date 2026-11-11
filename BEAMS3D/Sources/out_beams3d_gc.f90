@@ -58,6 +58,7 @@ SUBROUTINE out_beams3d_gc(t, q)
     REAL*8 :: xparam, yparam, zparam !, hx, hy, hz, hxi, hyi, hzi
     REAL*8 :: fval(1), fval2(1)
     INTEGER, parameter :: ict(8)=(/1,0,0,0,0,0,0,0/)
+    INTEGER, PARAMETER :: ict_cub(10)=(/1,0,0,0,0,0,0,0,0,0/)
     REAL*8, PARAMETER :: one = 1
     !-----------------------------------------------------------------------
     !     Begin Function
@@ -94,9 +95,13 @@ SUBROUTINE out_beams3d_gc(t, q)
        CALL R8HERM3FCN(ict,1,1,fval2,i,j,k,xparam,yparam,zparam,&
                        hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
                        YRHO4D(1,1,1,1),nr,nphi,nz)
-       y0 = fval(1)*fval(1)+fval2(1)*fval2(1) ! s = rho*rho
-       rho_help = SQRT(y0)
        z0 = ATAN2(fval2(1),fval(1))
+       ! The flux label from the C2 spline that the collision step uses
+       CALL R8FVTRICUB(ict_cub,1,1,fval,i,j,k,xparam,yparam,zparam,&
+                       hr(i),hri(i),hp(j),hpi(j),hz(k),hzi(k),&
+                       S4D(1,1,1,1),nr,nphi,nz)
+       y0 = MAX(fval(1),0.0D0)
+       rho_help = SQRT(y0)
        S_lines(mytdex, myline) = y0 
        U_lines(mytdex, myline) = z0
        CALL R8HERM3FCN(ict,1,1,fval,i,j,k,xparam,yparam,zparam,&

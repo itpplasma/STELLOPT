@@ -60,7 +60,7 @@
                      win_RHO_ARR, win_XRHO_ARR, win_YRHO_ARR, &
                      win_BZ4D, win_MODB4D, win_TE4D, win_NE4D, win_TI4D, win_ZEFF4D,win_OMEG4D, &
                      win_U4D,  win_POT4D, win_req_axis, win_zeq_axis, &
-                     win_RHO4D, win_XRHO4D, win_YRHO4D, &
+                     win_RHO4D, win_XRHO4D, win_YRHO4D, win_S4D, &
                      win_wall_load, win_wall_shine, win_hr, win_hp, win_hz, &
                      win_hri, win_hpi, win_hzi, win_NI5D, win_NI, &
                      win_raxis_fida, win_phiaxis_fida, win_zaxis_fida, win_energy_fida, win_pitch_fida, &
@@ -82,7 +82,7 @@
       REAL(rprec), DIMENSION(:,:,:,:), POINTER :: BR4D, BPHI4D, BZ4D, MODB4D, &
                                   TE4D, NE4D, TI4D, ZEFF4D, OMEG4D,&
                                   U4D, POT4D, &
-                                  RHO4D, XRHO4D, YRHO4D
+                                  RHO4D, XRHO4D, YRHO4D, S4D
       REAL(rprec), DIMENSION(:,:,:,:,:), POINTER :: NI5D
       REAL*8 ::      eps1, eps2, eps3
       LOGICAL ::     lpot = .TRUE.

@@ -28,6 +28,10 @@ test_beams3d_wall:
 	$(MPI_COMPILE_FREE) $(FLAGS_R) -I$(LIB_DIR) $(BEAMS3D_TEST_DIR)/test_wall_grazing.f90 $(LIB_DIR)/libstell$(STATIC_EXT) -o $(BEAMS3D_TEST_DIR)/test_wall_grazing.x
 	cd $(BEAMS3D_TEST_DIR); $(MPI_RUN) $(MPI_RUN_OPTS_SM) ./test_wall_grazing.x
 
+test_beams3d_lcfs_wall:
+	$(MPI_COMPILE_FREE) $(FLAGS_R) -I$(LIB_DIR) $(BEAMS3D_TEST_DIR)/test_lcfs_wall.f90 $(LIB_DIR)/libstell$(STATIC_EXT) $(LIB_LINK) -o $(BEAMS3D_TEST_DIR)/test_lcfs_wall.x
+	cd $(BEAMS3D_TEST_DIR); $(MPI_RUN) $(MPI_RUN_OPTS_SM) ./test_lcfs_wall.x
+
 test_beams3d_wall_planar:
 	$(MPI_COMPILE_FREE) $(FLAGS_R) -I$(LIB_DIR) $(BEAMS3D_TEST_DIR)/test_wall_planar.f90 $(LIB_DIR)/libstell$(STATIC_EXT) -o $(BEAMS3D_TEST_DIR)/test_wall_planar.x
 	cd $(BEAMS3D_TEST_DIR); $(MPI_RUN) $(MPI_RUN_OPTS_SM) ./test_wall_planar.x
@@ -53,6 +57,7 @@ test_beams3d:
 	$(MAKE) test_beams3d_grid_open_error
 	$(MAKE) test_beams3d_wall
 	$(MAKE) test_beams3d_wall_planar
+	$(MAKE) test_beams3d_lcfs_wall
 	$(MAKE) test_beams3d_coulomb_log
 	$(MAKE) test_beams3d_profile_limits
 	$(MAKE) test_beams3d_wall_interior

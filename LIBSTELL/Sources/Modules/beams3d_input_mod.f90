@@ -98,6 +98,11 @@
 !                           Euler-Maruyama step in speed and pitch as ASCOT5's
 !                           mccc_gc_euler; 2 the same step without noise.
 !            collision_noise_seed  Seed of collision_noise = 1
+!            lcfs_nu        Poloidal points of the faceted boundary that a
+!            lcfs_nv        plasma-only run without a vessel uses as its
+!                           loss surface, and toroidal points over the full
+!                           torus. With the former 120 and 180 the facets
+!                           lay up to 2 mm inside the W7-X boundary.
 !            spline_type    Interpolation of the 3-D grids: 'HERMITE' (default,
 !                           C1 tricubic Hermite) or 'CUBIC' (C2 tricubic spline
 !                           with natural ends in R and Z and periodic in phi,
@@ -138,6 +143,7 @@
                                vr_start_in, vphi_start_in, vz_start_in, &
                                rho_fullorbit, nsub_fullorbit, duplicate_factor, &
                                random_seed_in, collision_noise, collision_noise_seed, spline_type, &
+                               lcfs_nu, lcfs_nv, &
                                B_kick_min, B_kick_max, freq_kick, E_kick, &
                                rmin_fida, rmax_fida, zmin_fida, &
                                zmax_fida,phimin_fida, phimax_fida, &
@@ -265,6 +271,8 @@
       random_seed_in = -1 ! Seed from the operating system
       collision_noise = 0
       spline_type = 'HERMITE'
+      lcfs_nu = 360
+      lcfs_nv = 1800
       collision_noise_seed = 0
 
       ! Distribution Function Defaults
@@ -575,6 +583,8 @@
       WRITE(iunit_out,outint) 'RANDOM_SEED_IN',random_seed_in
       WRITE(iunit_out,outint) 'COLLISION_NOISE',collision_noise
       WRITE(iunit_out,outstr) 'SPLINE_TYPE',TRIM(spline_type)
+      WRITE(iunit_out,outint) 'LCFS_NU',lcfs_nu
+      WRITE(iunit_out,outint) 'LCFS_NV',lcfs_nv
       WRITE(iunit_out,outint) 'COLLISION_NOISE_SEED',collision_noise_seed
       WRITE(iunit_out,'(A)') '!---------- Distribution Parameters ------------'
       WRITE(iunit_out,outint) 'NRHO_DIST',ns_prof1
@@ -762,6 +772,8 @@
       CALL MPI_BCAST(random_seed_in,1,MPI_INTEGER, local_master, comm,istat)
       CALL MPI_BCAST(collision_noise,1,MPI_INTEGER, local_master, comm,istat)
       CALL MPI_BCAST(spline_type,8,MPI_CHARACTER, local_master, comm,istat)
+      CALL MPI_BCAST(lcfs_nu,1,MPI_INTEGER, local_master, comm,istat)
+      CALL MPI_BCAST(lcfs_nv,1,MPI_INTEGER, local_master, comm,istat)
       CALL MPI_BCAST(collision_noise_seed,1,MPI_INTEGER8, local_master, comm,istat)
 
       CALL MPI_BCAST(nte,1,MPI_INTEGER, local_master, comm,istat)

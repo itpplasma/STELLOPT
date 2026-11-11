@@ -17,6 +17,7 @@
                                 nlim, xlim, zlim, ntitle, btor, &
                                 rcenter, sp, nbndry, xbndry, zbndry, COCOS_ID
       USE beams3d_runtime
+      USE beams3d_globals, ONLY: lcfs_nv
       USE beams3d_grid, ONLY: raxis_g => raxis, phiaxis, &
                                  zaxis_g => zaxis, nr, nphi, nz, &
                                  rmin, rmax, zmin, zmax, phimin, &
@@ -131,7 +132,7 @@
       ! If we ask for a plasma-only run and do not provide a vessel then make one.
       IF (lcreate_wall) THEN
          lvessel = .TRUE.
-         k = 128
+         k = lcfs_nv
          ier = 0
          lverb_wall=.false.
          IF (lplasma_only) THEN

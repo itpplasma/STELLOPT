@@ -102,7 +102,9 @@
 !            lcfs_nv        plasma-only run without a vessel uses as its
 !                           loss surface, and toroidal points over the full
 !                           torus. With the former 120 and 180 the facets
-!                           lay up to 2 mm inside the W7-X boundary.
+!                           lay up to 2 mm inside the W7-X boundary. lcfs_nv
+!                           is also the number of toroidal segments of the
+!                           axisymmetric surface made from an EQDSK file.
 !            spline_type    Interpolation of the 3-D grids: 'HERMITE' (default,
 !                           C1 tricubic Hermite) or 'CUBIC' (C2 tricubic spline
 !                           with natural ends in R and Z and periodic in phi,

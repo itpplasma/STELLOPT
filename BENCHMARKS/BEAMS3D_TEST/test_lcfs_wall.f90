@@ -6,10 +6,12 @@ program test_lcfs_wall
     use mpi
     use beams3d_globals, only: lcfs_nu, lcfs_nv
     use beams3d_input_mod, only: init_beams3d_input
-    use wall_mod, only: vertex, face, nface, wall_load_mn, wall_free
+    use wall_mod, only: vertex, face, nface, wall_load_mn, wall_load_seg, wall_free
     implicit none
     double precision, parameter :: r0 = 5.5d0, a = 0.53d0
+    integer, parameter :: npol = 720
     double precision :: rmn(2), zmn(2), xm(2), xn(2), c(3), dev, coarse
+    double precision :: rseg(npol), zseg(npol)
     integer :: ierr, world, i
 
     call MPI_INIT(ierr)
@@ -22,6 +24,17 @@ program test_lcfs_wall
         ' m (120 x 180 points: ', coarse, ' m)'
     if (coarse < 5d-4) error stop 'the coarse mesh should miss the surface by 0.9 mm'
     if (dev > 5d-5) error stop 'default boundary mesh further than 0.05 mm from the surface'
+    ! The axisymmetric surface made from an EQDSK boundary had 128 toroidal segments.
+    do i = 1, npol
+        rseg(i) = r0 + a*cos(8*atan(1d0)*(i - 1)/npol)
+        zseg(i) = a*sin(8*atan(1d0)*(i - 1)/npol)
+    end do
+    coarse = deviation_seg(128)
+    dev = deviation_seg(lcfs_nv)
+    write(*,'(a,es9.2,a,es9.2,a)') ' Axisymmetric boundary inside the torus by ', dev, &
+        ' m (128 segments: ', coarse, ' m)'
+    if (coarse < 5d-4) error stop '128 toroidal segments should miss the surface by 1 mm'
+    if (dev > 5d-5) error stop 'default axisymmetric mesh further than 0.05 mm from the surface'
     write(*,*) 'Faceted boundary of plasma-only runs: PASS'
     call MPI_FINALIZE(ierr)
 contains
@@ -36,4 +49,17 @@ contains
         end do
         call wall_free(ierr, world)
     end function deviation
+
+    double precision function deviation_seg(nphi)
+        integer, intent(in) :: nphi
+        ierr = 0
+        call wall_load_seg(npol, rseg, zseg, nphi, ierr, .false., world)
+        if (ierr /= 0) error stop 'axisymmetric wall not built'
+        deviation_seg = 0
+        do i = 1, nface
+            c = (vertex(face(i,1),:) + vertex(face(i,2),:) + vertex(face(i,3),:))/3
+            deviation_seg = max(deviation_seg, abs(hypot(hypot(c(1), c(2)) - r0, c(3)) - a))
+        end do
+        call wall_free(ierr, world)
+    end function deviation_seg
 end program test_lcfs_wall

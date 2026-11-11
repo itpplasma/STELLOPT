@@ -114,7 +114,13 @@
                    abs( (rt(3) - rt(2)) *(zt(4) - zt(2)) - (rt(4) - rt(2)) *(zt(3) - zt(2)))
 
          dvol = area*sum(rt)
-         dist5d_prof(:,i,j,k,:,:) = dist5d_prof(:,i,j,k,:,:)/dvol
+         ! Where the flux coordinates cannot be inverted, outside the plasma,
+         ! the cell has no volume element; a division would write NaN and Inf.
+         IF (dvol > 0) THEN
+            dist5d_prof(:,i,j,k,:,:) = dist5d_prof(:,i,j,k,:,:)/dvol
+         ELSE
+            dist5d_prof(:,i,j,k,:,:) = 0
+         END IF
       END DO
 
       ! The master rescales the whole shared array; every rank must have
